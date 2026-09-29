@@ -64,7 +64,7 @@ function ModelMark({model,size=32}){
 
 function ModelPicker({value,onChange,onClose}){
  const [query,setQuery]=useState("");
- const [selected,setSelected]=useState(Array.isArray(value)?value:[]);
+ const [selected,setSelected]=useState(Array.isArray(value)?value.map(x=>typeof x==="string"?x:x?.id).filter(Boolean):[]);
  const [catalog,setCatalog]=useState(fallbackModels);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState("");
@@ -79,7 +79,7 @@ function ModelPicker({value,onChange,onClose}){
    .finally(()=>{if(!cancelled)setLoading(false)});
   return()=>{cancelled=true};
  },[]);
- useEffect(()=>{setSelected(Array.isArray(value)?value:[])},[value]);
+ useEffect(()=>{setSelected(Array.isArray(value)?value.map(x=>typeof x==="string"?x:x?.id).filter(Boolean):[])},[value]);
  const q=query.trim().toLowerCase();
  const results=catalog.filter(m=>(m.name+" "+m.company+" "+m.id).toLowerCase().includes(q)).slice(0,300);
  const toggle=id=>{
@@ -101,7 +101,7 @@ function ModelPicker({value,onChange,onClose}){
     {results.map(model=>{const isSelected=selected.includes(model.id);const limitReached=selected.length>=MAX_MODELS&&!isSelected;return <button type="button" key={model.id} className={"model-option "+(isSelected?"selected ":"")+(limitReached?"at-limit":"")} onClick={()=>toggle(model.id)} disabled={limitReached}><ModelMark model={model}/><span className="model-option-copy"><b>{model.name}</b><small>{model.company}{model.family?" · "+model.family:""}</small></span>{isSelected&&<span className="model-check">✓</span>}</button>})}
     {!loading&&!results.length&&<div className="model-empty">No matching models</div>}
    </div>
-   <button className="pri model-done" onClick={()=>{onChange(selected);onClose()}} disabled={!selected.length}>Done</button>
+   <button className="pri model-done" onClick={()=>{onChange(selected.map(id=>catalog.find(model=>model.id===id)).filter(Boolean));onClose()}} disabled={!selected.length}>Done</button>
   </section>
  </div>;
 }
@@ -281,7 +281,7 @@ function AppShell(){
  const downloadText=(filename,text)=>{try{const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);return true}catch{return false}};
  const exportPrompt=async()=>{if(!t)return notify("Nothing to export yet");if(downloadText("prompt-habit-prompt.txt",prompt)){notify("Prompt exported")}else{try{await navigator.clipboard.writeText(prompt);notify("Prompt copied instead")}catch{notify("Export failed")}}};
  const publishTemplate=()=>{if(!t)return notify("Write a prompt first");setPublish({name:"",author:"",useCase:"",models:[],tags:""});setMoreOpen(false);setPublishOpen(true)};
- const submitTemplate=()=>{const name=publish.name.trim();if(!name||!publish.useCase.trim())return notify("Add a template name and use case");const item={id:Date.now(),name,category:"Community",tags:publish.tags.split(",").map(x=>x.trim()).filter(Boolean),text:prompt,useCase:publish.useCase.trim(),models:publish.models.map(id=>fallbackModels.find(x=>x.id===id)?.name||id).filter(Boolean),author:publish.author.trim()};setPublishedTemplates(v=>[item,...v]);try{localStorage.setItem(KEY+":published:"+item.id,JSON.stringify(item))}catch{};setPublishOpen(false);notify("Template published")};
+ const submitTemplate=()=>{const name=publish.name.trim();if(!name||!publish.useCase.trim())return notify("Add a template name and use case");const item={id:Date.now(),name,category:"Community",tags:publish.tags.split(",").map(x=>x.trim()).filter(Boolean),text:prompt,useCase:publish.useCase.trim(),models:publish.models.map(model=>model?.name||model?.id).filter(Boolean),author:publish.author.trim()};setPublishedTemplates(v=>[item,...v]);try{localStorage.setItem(KEY+":published:"+item.id,JSON.stringify(item))}catch{};setPublishOpen(false);notify("Template published")};
  const load=s=>{snapshot();setPrompt(s);setScreen("write");setMobileOpen(false);setTimeout(()=>editor.current?.focus(),0)};
  const setPref=(k,v)=>setPrefs(p=>({...p,[k]:v}));
 
