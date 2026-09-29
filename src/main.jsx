@@ -29,12 +29,18 @@ function Welcome({onContinue}){
 }
 
 const templates=[
- ["Explain simply","Explain [topic] to me as if I am a beginner. Use one everyday analogy and end with three key points."],
- ["Write an email","Write a short, polite email to [person] about [subject]. Keep it under 120 words and end with a clear next step."],
- ["Summarize text","Summarize the text below in five bullet points, then list any action items.\n\n[paste text]"],
- ["Code review","Act as a senior developer. Review this code for bugs, readability and performance. List issues by severity and suggest fixes.\n\n[paste code]"],
- ["Lesson plan","Create a 45-minute lesson plan on [topic] for [level] students, with objectives, activities and a short quiz."],
- ["Rewrite better","Rewrite the text below to be clearer and more concise. Keep my meaning and tone.\n\n[paste text]"]
+ {name:"Explain simply",category:"Text",tags:["explain","education","beginner"],text:"Explain [topic] to me as if I am a beginner. Use one everyday analogy and end with three key points."},
+ {name:"Write an email",category:"Business",tags:["email","business","communication"],text:"Write a short, polite email to [person] about [subject]. Keep it under 120 words and end with a clear next step."},
+ {name:"Summarize text",category:"Text",tags:["summary","summarize","document"],text:"Summarize the text below in five bullet points, then list any action items.\n\n[paste text]"},
+ {name:"Code review",category:"Code",tags:["code","coding","debug","review"],text:"Act as a senior developer. Review this code for bugs, readability and performance. List issues by severity and suggest fixes.\n\n[paste code]"},
+ {name:"Lesson plan",category:"Education",tags:["lesson","teaching","education"],text:"Create a 45-minute lesson plan on [topic] for [level] students, with objectives, activities and a short quiz."},
+ {name:"Rewrite better",category:"Text",tags:["rewrite","edit","writing"],text:"Rewrite the text below to be clearer and more concise. Keep my meaning and tone.\n\n[paste text]"},
+ {name:"Image prompt",category:"Image",tags:["image","visual","art","design"],text:"Create a detailed image-generation prompt for [subject]. Specify composition, lighting, camera angle, style, mood, colors, environment, and important details."},
+ {name:"Image editing brief",category:"Image",tags:["image","edit","photo","retouch"],text:"Write an image-editing instruction for [image]. Describe exactly what to change, what to preserve, the desired style, and the final visual result."},
+ {name:"Video concept",category:"Video",tags:["video","film","reel","youtube"],text:"Develop a video concept about [topic]. Include hook, audience, scene-by-scene structure, visuals, voiceover, pacing, and a strong ending."},
+ {name:"Video script",category:"Video",tags:["video","script","youtube","shorts"],text:"Write a [length]-minute video script about [topic] with a strong hook, clear sections, natural narration, visual directions, and a call to action."},
+ {name:"Research brief",category:"Research",tags:["research","analysis","sources"],text:"Research [topic] and produce a structured brief covering the key facts, competing viewpoints, evidence, uncertainties, and questions that still need investigation."},
+ {name:"Social post",category:"Marketing",tags:["social","marketing","content","post"],text:"Create [platform] content about [topic]. Give me three hooks, a concise post, a clear call to action, and relevant variations for different audiences."}
 ];
 
 const upgradeTools=[
@@ -126,6 +132,16 @@ function AppShell(){
  const setPref=(k,v)=>setPrefs(p=>({...p,[k]:v}));
 
  const suggestions=useMemo(()=>{if(!prefs.auto||!prompt)return [];const last=prompt.slice(0,prompt.length).split(/\s+/).pop().toLowerCase();const words=["clearly","step by step","with examples","in a table","as a checklist","for a beginner","professionally","concisely","with constraints"];return words.filter(x=>x.startsWith(last)&&x!==last).slice(0,3)},[prompt,prefs.auto]);
+ const templateCategories=[...new Set(templates.map(x=>x.category))];
+ const templateResults=templates.filter(x=>{
+  const q=search.trim().toLowerCase();
+  const matchesCategory=filter==="all"||x.category===filter;
+  const haystack=[x.name,x.category,...x.tags,x.text].join(" ").toLowerCase();
+  return matchesCategory&&(!q||haystack.includes(q));
+ });
+ const groupedTemplates=templateCategories
+  .map(category=>({category,items:templateResults.filter(x=>x.category===category)}))
+  .filter(group=>group.items.length);
  const filteredHistory=history.filter(x=>(filter==="all"||x.pinned)&&x.text.toLowerCase().includes(search.toLowerCase()));
 
  const positionMic=()=>{
@@ -185,7 +201,17 @@ function AppShell(){
     </div>
    </section>}
    {screen==="history"&&<section className="screen on"><div className="scroll"><input className="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search saved prompts"/><div className="chips"><button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button><button className={filter==="pin"?"chip active":"chip"} onClick={()=>setFilter("pin")}>Pinned</button></div>{filteredHistory.length?filteredHistory.map(x=><div className="item" key={x.id}><button className="item-body" onClick={()=>load(x.text)}><div className="item-title">{x.text}</div><div className="item-date">{x.pinned?"Pinned · ":""}{new Date(x.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div></button><button className="ic item-pin" onClick={()=>setHistory(h=>h.map(p=>p.id===x.id?{...p,pinned:!p.pinned}:p))}>✦</button></div>):<div className="empty"><b>{history.length?"No matches":"No saved prompts yet"}</b><span>{history.length?"Try a different search.":"Save a prompt from the Write screen."}</span></div>}</div></section>}
-   {screen==="templates"&&<section className="screen on"><div className="scroll">{templates.map(([name,text])=><button className="template-item" key={name} onClick={()=>load(text)}><b>{name}</b><span>{text}</span></button>)}</div></section>}
+   {screen==="templates"&&<section className="screen on"><div className="scroll template-screen">
+    <div className="template-search-wrap"><span className="template-search-icon">⌕</span><input className="search template-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by task: image, video, code, research..."/>{search&&<button className="template-search-clear" onClick={()=>setSearch("")} aria-label="Clear template search">×</button>}</div>
+    <div className="template-filters" aria-label="Template categories">
+      <button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button>
+      {templateCategories.map(category=><button key={category} className={filter===category?"chip active":"chip"} onClick={()=>setFilter(category)}>{category}</button>)}
+    </div>
+    {groupedTemplates.length?groupedTemplates.map(group=><div className="template-group" key={group.category}>
+      <div className="template-group-head"><h3>{group.category}</h3><span>{group.items.length}</span></div>
+      {group.items.map(item=><button className="template-item" key={item.name} onClick={()=>load(item.text)}><div className="template-item-top"><b>{item.name}</b><span className="template-type">{item.category}</span></div><span>{item.text}</span></button>)}
+    </div>):<div className="empty"><b>No templates found</b><span>Try a task such as image, video, coding, research, or email.</span></div>}
+   </div></section>}
    {screen==="settings"&&<section className="screen on"><div className="scroll settings">
     <h3>Canvas</h3>
     <Row label="Line spacing"><Segment value={prefs.lh} values={[[30,"Tight"],[34,"Normal"],[40,"Loose"]]} onChange={v=>setPref("lh",+v)}/></Row>
