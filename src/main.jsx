@@ -11,7 +11,7 @@ function Welcome({onContinue}){
 }
 
 function Icon({type}){
- const paths={copy:<><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></>,spark:<path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/>,plus:<path d="M12 5v14M5 12h14"/>,minus:<path d="M5 12h14"/>};
+ const paths={copy:<><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></>,spark:<path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/>};
  return <svg viewBox="0 0 24 24" aria-hidden="true">{paths[type]}</svg>;
 }
 
