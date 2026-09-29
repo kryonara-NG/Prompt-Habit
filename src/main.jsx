@@ -6,56 +6,95 @@ const KEY="prompt-habit:v3";
 const DEFAULTS={theme:"system",size:20,lines:false,lh:34,font:"serif",count:true,auto:true,spell:true,draft:true,fx:true};
 const FONTS={serif:'"Newsreader",Georgia,serif',sans:'"IBM Plex Sans",system-ui,sans-serif',mono:"ui-monospace,Menlo,Consolas,monospace"};
 
-const modelCatalog=[
- {id:"gpt-5",name:"GPT-5",company:"OpenAI",mark:"knot",tone:"openai"},
- {id:"gpt-5-mini",name:"GPT-5 mini",company:"OpenAI",mark:"knot",tone:"openai"},
- {id:"claude-opus",name:"Claude Opus",company:"Anthropic",mark:"claude",tone:"anthropic"},
- {id:"claude-sonnet",name:"Claude Sonnet",company:"Anthropic",mark:"claude",tone:"anthropic"},
- {id:"gemini",name:"Gemini",company:"Google",mark:"gemini",tone:"google"},
- {id:"grok",name:"Grok",company:"xAI",mark:"x",tone:"xai"},
- {id:"llama",name:"Llama",company:"Meta",mark:"meta",tone:"meta"},
- {id:"mistral",name:"Mistral",company:"Mistral AI",mark:"mistral",tone:"mistral"},
- {id:"deepseek",name:"DeepSeek",company:"DeepSeek",mark:"deepseek",tone:"deepseek"},
- {id:"qwen",name:"Qwen",company:"Alibaba Cloud",mark:"qwen",tone:"qwen"},
- {id:"cohere",name:"Command",company:"Cohere",mark:"cohere",tone:"cohere"},
- {id:"midjourney",name:"Midjourney",company:"Midjourney",mark:"midjourney",tone:"midjourney"},
- {id:"ideogram",name:"Ideogram",company:"Ideogram",mark:"I",tone:"ideogram"},
- {id:"runway",name:"Runway",company:"Runway",mark:"R",tone:"runway"},
- {id:"other",name:"Other model",company:"Custom",mark:"+",tone:"custom"}
+const MODEL_CATALOG_URL="https://models.dev/api.json?type=all";
+const MODEL_LOGO_URL=provider=>`https://models.dev/logos/${encodeURIComponent(provider)}.svg`;
+const MAX_MODELS=4;
+
+const fallbackModels=[
+ {id:"openai/gpt-5",name:"GPT-5",company:"OpenAI",provider:"openai"},
+ {id:"openai/gpt-5-mini",name:"GPT-5 mini",company:"OpenAI",provider:"openai"},
+ {id:"anthropic/claude-opus",name:"Claude Opus",company:"Anthropic",provider:"anthropic"},
+ {id:"anthropic/claude-sonnet",name:"Claude Sonnet",company:"Anthropic",provider:"anthropic"},
+ {id:"google/gemini",name:"Gemini",company:"Google",provider:"google"},
+ {id:"xai/grok",name:"Grok",company:"xAI",provider:"xai"},
+ {id:"meta/llama",name:"Llama",company:"Meta",provider:"meta"},
+ {id:"mistral/mistral-large",name:"Mistral Large",company:"Mistral AI",provider:"mistral"},
+ {id:"deepseek/deepseek-chat",name:"DeepSeek Chat",company:"DeepSeek",provider:"deepseek"},
+ {id:"qwen/qwen",name:"Qwen",company:"Alibaba Cloud",provider:"qwen"},
+ {id:"cohere/command",name:"Command",company:"Cohere",provider:"cohere"}
 ];
 
+function normalizeModelCatalog(data){
+ const rows=[];
+ Object.entries(data||{}).forEach(([providerId,provider])=>{
+  Object.entries(provider?.models||{}).forEach(([modelId,model])=>{
+   const id=model?.id||modelId;
+   rows.push({
+    id,
+    name:model?.name||modelId.split("/").pop()||modelId,
+    company:provider?.name||providerId,
+    provider:providerId,
+    family:model?.family||"",
+    reasoning:!!model?.reasoning,
+    toolCall:!!model?.tool_call,
+    context:model?.limit?.context||null,
+    logoUrl:MODEL_LOGO_URL(providerId)
+   });
+  });
+ });
+ const unique=new Map();
+ rows.forEach(model=>{if(!unique.has(model.id))unique.set(model.id,model)});
+ return [...unique.values()].sort((a,b)=>(a.company+" "+a.name).localeCompare(b.company+" "+b.name));
+}
+
 function ModelMark({model,size=32}){
- const m=model||modelCatalog[0];
- const marks={
-  knot:<><circle cx="12" cy="12" r="5.5"/><path d="M6 8.5c2.2-3.5 7.8-3.5 10 0M6 15.5c2.2 3.5 7.8 3.5 10 0M8.5 6c3.5 2.2 3.5 7.8 0 10M15.5 6c-3.5 2.2-3.5 7.8 0 10"/></>,
-  claude:<path d="M7 5h10M6 9h12M7 13h10M6 17h12"/>,
-  gemini:<path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2L12 3Z"/>,
-  x:<path d="M5 5l14 14M19 5 5 19"/>,
-  meta:<path d="M4 15c1.5-6 4-9 6-9 2.2 0 2.7 6 4.7 6 1.8 0 2.4-4 4.3-4 1.3 0 2.1 1.2 2.1 3.2 0 3.7-2.4 6.8-4.8 6.8-2.6 0-3.3-5.8-5.5-5.8-2 0-2.6 3.8-4.8 3.8-1.2 0-2-.7-2-2Z"/>,
-  mistral:<path d="M5 6h14M5 10h9M5 14h14M5 18h9"/>,
-  deepseek:<path d="M5 14c0-5 3.1-8 7-8 4.1 0 7 3 7 7 0 3-2 5-5 5H9c-2.2 0-4-1.8-4-4Z"/>,
-  qwen:<path d="M7 17c0-6 2.2-10 5-10s5 4 5 10M7 13h10M9 18l6-12"/>,
-  cohere:<circle cx="12" cy="12" r="7"/>,
-  midjourney:<path d="M4 15c4-7 8-7 16 0M6 10c4-4 8-4 12 0M8 6h8"/>,
-  I:<path d="M7 5h10M12 5v14M7 19h10"/>,
-  R:<path d="M7 19V5h6a4 4 0 0 1 0 8H7M13 13l5 6"/>,
-  "+":<><path d="M12 5v14M5 12h14"/></>
- };
- return <span className={"model-mark "+(m.tone||"custom")} style={{width:size,height:size}} aria-hidden="true"><svg viewBox="0 0 24 24">{marks[m.mark]||marks["+"]}</svg></span>;
+ const [failed,setFailed]=useState(false);
+ const m=model||fallbackModels[0];
+ return <span className="model-mark" style={{width:size,height:size}} aria-hidden="true">
+  {!failed&&m.logoUrl?<img src={m.logoUrl} alt="" loading="lazy" onError={()=>setFailed(true)}/>:<span>{(m.company||"?").trim().charAt(0).toUpperCase()}</span>}
+ </span>;
 }
 
 function ModelPicker({value,onChange,onClose}){
  const [query,setQuery]=useState("");
- const [selected,setSelected]=useState(value||"");
- const results=modelCatalog.filter(m=>(m.name+" "+m.company).toLowerCase().includes(query.trim().toLowerCase()));
+ const [selected,setSelected]=useState(Array.isArray(value)?value:[]);
+ const [catalog,setCatalog]=useState(fallbackModels);
+ const [loading,setLoading]=useState(true);
+ const [error,setError]=useState("");
+ useEffect(()=>{
+  let cancelled=false;
+  const cached=sessionStorage.getItem("prompt-habit:model-catalog");
+  if(cached){try{const parsed=JSON.parse(cached);if(Array.isArray(parsed)&&parsed.length)setCatalog(parsed)}catch{}}
+  fetch(MODEL_CATALOG_URL,{headers:{Accept:"application/json"}})
+   .then(r=>{if(!r.ok)throw new Error("catalog request failed");return r.json()})
+   .then(data=>{if(cancelled)return;const next=normalizeModelCatalog(data);if(next.length){setCatalog(next);try{sessionStorage.setItem("prompt-habit:model-catalog",JSON.stringify(next))}catch{}}else throw new Error("empty catalog")})
+   .catch(()=>{if(!cancelled)setError("Live catalog unavailable — showing cached models.")})
+   .finally(()=>{if(!cancelled)setLoading(false)});
+  return()=>{cancelled=true};
+ },[]);
+ useEffect(()=>{setSelected(Array.isArray(value)?value:[])},[value]);
+ const q=query.trim().toLowerCase();
+ const results=catalog.filter(m=>(m.name+" "+m.company+" "+m.id).toLowerCase().includes(q)).slice(0,300);
+ const toggle=id=>{
+  setSelected(current=>{
+   if(current.includes(id))return current.filter(x=>x!==id);
+   if(current.length>=MAX_MODELS)return current;
+   return [...current,id];
+  });
+ };
  return <div className="model-picker-layer" role="dialog" aria-modal="true" aria-labelledby="model-picker-title">
   <button className="model-picker-backdrop" aria-label="Close model picker" onClick={onClose}/>
   <section className="model-picker">
    <div className="sheet-handle"/>
-   <div className="model-picker-head"><div><span className="eyebrow">AI MODEL</span><h2 id="model-picker-title">Choose a model</h2></div><button className="sheet-close" onClick={onClose}><Icon name="close" size={16}/></button></div>
+   <div className="model-picker-head"><div><span className="eyebrow">AI MODELS</span><h2 id="model-picker-title">Choose up to {MAX_MODELS} models</h2><small className="model-picker-count">{selected.length}/{MAX_MODELS} selected · {catalog.length.toLocaleString()} models</small></div><button className="sheet-close" onClick={onClose}><Icon name="close" size={16}/></button></div>
    <div className="model-search"><span>⌕</span><input autoFocus value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search models or companies"/></div>
-   <div className="model-list">{results.map(model=><button type="button" key={model.id} className={"model-option "+(selected===model.id?"selected":"")} onClick={()=>setSelected(model.id)}><ModelMark model={model}/><span className="model-option-copy"><b>{model.name}</b><small>{model.company}</small></span>{selected===model.id&&<span className="model-check">✓</span>}</button>)}{!results.length&&<div className="model-empty">No matching models</div>}</div>
-   <button className="pri model-done" onClick={()=>{onChange(selected);onClose()}} disabled={!selected}>Done</button>
+   {error&&<div className="model-catalog-note">{error}</div>}
+   <div className="model-list">
+    {loading&&!results.length&&<div className="model-empty">Loading live model catalog…</div>}
+    {results.map(model=>{const isSelected=selected.includes(model.id);const limitReached=selected.length>=MAX_MODELS&&!isSelected;return <button type="button" key={model.id} className={"model-option "+(isSelected?"selected ":"")+(limitReached?"at-limit":"")} onClick={()=>toggle(model.id)} disabled={limitReached}><ModelMark model={model}/><span className="model-option-copy"><b>{model.name}</b><small>{model.company}{model.family?" · "+model.family:""}</small></span>{isSelected&&<span className="model-check">✓</span>}</button>})}
+    {!loading&&!results.length&&<div className="model-empty">No matching models</div>}
+   </div>
+   <button className="pri model-done" onClick={()=>{onChange(selected);onClose()}} disabled={!selected.length}>Done</button>
   </section>
  </div>;
 }
@@ -72,7 +111,8 @@ function Icon({name,size=22}){
   template:<><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 10v10"/></>,
   settings:<><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></>,
   close:<><path d="m6 6 12 12M18 6 6 18"/></>,
-  more:<><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></>
+  more:<><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></>,
+  search:<><circle cx="10.5" cy="10.5" r="5.5"/><path d="m15 15 4.5 4.5"/></>
  };
  return <svg className="i" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{p[name]}</svg>;
 }
@@ -158,7 +198,7 @@ function AppShell(){
  const [modelPickerOpen,setModelPickerOpen]=useState(false);
  const [settingsSection,setSettingsSection]=useState("");
  const [settingsSearch,setSettingsSearch]=useState("");
- const [publish,setPublish]=useState({name:"",author:"",useCase:"",model:"",tags:""});
+ const [publish,setPublish]=useState({name:"",author:"",useCase:"",models:[],tags:""});
  const [adjusting,setAdjusting]=useState(false);
  const [listening,setListening]=useState(false);
  const [toast,setToast]=useState("");
@@ -219,8 +259,8 @@ function AppShell(){
  const dismissRecovery=()=>{try{localStorage.removeItem(KEY+":recovery")}catch{};setRecovery("");};
  const downloadText=(filename,text)=>{try{const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);return true}catch{return false}};
  const exportPrompt=async()=>{if(!t)return notify("Nothing to export yet");if(downloadText("prompt-habit-prompt.txt",prompt)){notify("Prompt exported")}else{try{await navigator.clipboard.writeText(prompt);notify("Prompt copied instead")}catch{notify("Export failed")}}};
- const publishTemplate=()=>{if(!t)return notify("Write a prompt first");setPublish({name:"",author:"",useCase:"",model:"",tags:""});setMoreOpen(false);setPublishOpen(true)};
- const submitTemplate=()=>{const name=publish.name.trim();if(!name||!publish.useCase.trim())return notify("Add a template name and use case");const item={id:Date.now(),name,category:"Community",tags:publish.tags.split(",").map(x=>x.trim()).filter(Boolean),text:prompt,useCase:publish.useCase.trim(),model:(modelCatalog.find(x=>x.id===publish.model)?.name||publish.model).trim(),author:publish.author.trim()};setPublishedTemplates(v=>[item,...v]);try{localStorage.setItem(KEY+":published:"+item.id,JSON.stringify(item))}catch{};setPublishOpen(false);notify("Template published")};
+ const publishTemplate=()=>{if(!t)return notify("Write a prompt first");setPublish({name:"",author:"",useCase:"",models:[],tags:""});setMoreOpen(false);setPublishOpen(true)};
+ const submitTemplate=()=>{const name=publish.name.trim();if(!name||!publish.useCase.trim())return notify("Add a template name and use case");const item={id:Date.now(),name,category:"Community",tags:publish.tags.split(",").map(x=>x.trim()).filter(Boolean),text:prompt,useCase:publish.useCase.trim(),models:publish.models.map(id=>modelCatalog.find(x=>x.id===id)?.name||id).filter(Boolean),author:publish.author.trim()};setPublishedTemplates(v=>[item,...v]);try{localStorage.setItem(KEY+":published:"+item.id,JSON.stringify(item))}catch{};setPublishOpen(false);notify("Template published")};
  const load=s=>{snapshot();setPrompt(s);setScreen("write");setMobileOpen(false);setTimeout(()=>editor.current?.focus(),0)};
  const setPref=(k,v)=>setPrefs(p=>({...p,[k]:v}));
 
@@ -304,7 +344,7 @@ function AppShell(){
     </div>
     {groupedTemplates.length?groupedTemplates.map(group=><div className="template-group" key={group.category}>
       <div className="template-group-head"><h3>{group.category}</h3><span>{group.items.length}</span></div>
-      {group.items.map(item=>{const model=modelCatalog.find(m=>m.name===item.model);const creator=item.author||"Prompt Habit";const initial=creator.trim().charAt(0).toUpperCase()||"P";return <button className="template-item" key={item.id||item.name} onClick={()=>load(item.text)}><div className="template-social-head"><span className="template-avatar">{initial}</span><span className="template-creator"><b>{creator}</b><small>{item.category} template</small></span><span className="template-type">{item.category}</span></div><div className="template-item-title">{item.name}</div><span className="template-item-copy">{item.text}</span><div className="template-social-foot"><span className="template-tags">{(item.tags||[]).slice(0,3).map(tag=><em key={tag}>#{tag}</em>)}</span><span className="template-model">{model?<ModelMark model={model} size={24}/>:null}{item.model||"Prompt Habit"}</span></div>{item.useCase&&<small className="template-meta">{item.useCase}</small>}</button>})}</div>):<div className="empty"><b>No templates found</b><span>Try a task such as image, video, coding, research, or email.</span></div>}
+      {group.items.map(item=>{const model=modelCatalog.find(m=>m.name===item.model);const creator=item.author||"Prompt Habit";const initial=creator.trim().charAt(0).toUpperCase()||"P";return <button className="template-item" key={item.id||item.name} onClick={()=>load(item.text)}><div className="template-social-head"><span className="template-avatar">{initial}</span><span className="template-creator"><b>{creator}</b><small>{item.category} template</small></span><span className="template-type">{item.category}</span></div><div className="template-item-title">{item.name}</div><span className="template-item-copy">{item.text}</span><div className="template-social-foot"><span className="template-tags">{(item.tags||[]).slice(0,3).map(tag=><em key={tag}>#{tag}</em>)}</span><span className="template-model">{model?<ModelMark model={model} size={24}/>:null}{Array.isArray(item.models)?(item.models.length?item.models.join(", "):"Prompt Habit"):(item.model||"Prompt Habit")}</span></div>{item.useCase&&<small className="template-meta">{item.useCase}</small>}</button>})}</div>):<div className="empty"><b>No templates found</b><span>Try a task such as image, video, coding, research, or email.</span></div>}
    </div></section>}
    {screen==="settings"&&<section className="screen on"><div className="scroll settings">
     <div className="settings-search-wrap"><span>⌕</span><input className="search settings-search" value={settingsSearch} onChange={e=>setSettingsSearch(e.target.value)} placeholder="Search settings"/></div>
@@ -326,8 +366,8 @@ function AppShell(){
   </nav>
   <UpgradeSheet open={sheetOpen} onClose={()=>setSheetOpen(false)} onApply={applyUpgrade} disabled={!t}/>
   {welcomeOpen&&<WelcomeSheet onContinue={()=>{setWelcomeOpen(false);setTimeout(()=>editor.current?.focus(),120)}}/>}
-  {modelPickerOpen&&<ModelPicker value={publish.model} onChange={v=>setPublish(p=>({...p,model:v}))} onClose={()=>setModelPickerOpen(false)}/>}
-  {publishOpen&&<div className="publish-layer" role="dialog" aria-modal="true"><button className="sheet-backdrop" aria-label="Close publish form" onClick={()=>setPublishOpen(false)}/><section className="publish-sheet"><div className="sheet-handle"/><div className="sheet-head"><div><span className="eyebrow">PUBLISH TEMPLATE</span><h2>Share your prompt</h2></div><button className="sheet-close" onClick={()=>setPublishOpen(false)}><Icon name="close" size={16}/></button></div><p className="publish-intro">Add a little context so people can discover and use your template.</p><label>Template name<input value={publish.name} onChange={e=>setPublish(p=>({...p,name:e.target.value}))} placeholder="e.g. Cinematic product image"/></label><label>Your name <small>optional</small><input value={publish.author} onChange={e=>setPublish(p=>({...p,author:e.target.value}))} placeholder="Your name"/></label><label>Use case<input value={publish.useCase} onChange={e=>setPublish(p=>({...p,useCase:e.target.value}))} placeholder="What is this prompt best for?"/></label><label>Best AI model <small>optional</small><button type="button" className="model-select" onClick={()=>setModelPickerOpen(true)}><span>{(()=>{const m=modelCatalog.find(x=>x.id===publish.model);return m?<><ModelMark model={m} size={28}/><span><b>{m.name}</b><small>{m.company}</small></span></>:<><span className="model-placeholder-mark">+</span><span><b>Choose a model</b><small>Search and select an AI model</small></span></>})()}</span><span className="model-chevron">⌄</span></button></label><label>Tags <small>comma separated</small><input value={publish.tags} onChange={e=>setPublish(p=>({...p,tags:e.target.value}))} placeholder="image, product, cinematic, marketing"/></label><button className="pri publish-submit" onClick={submitTemplate}>Publish template</button></section></div>}
+  {modelPickerOpen&&<ModelPicker value={publish.models} onChange={v=>setPublish(p=>({...p,models:v}))} onClose={()=>setModelPickerOpen(false)}/>}
+  {publishOpen&&<div className="publish-layer" role="dialog" aria-modal="true"><button className="sheet-backdrop" aria-label="Close publish form" onClick={()=>setPublishOpen(false)}/><section className="publish-sheet"><div className="sheet-handle"/><div className="sheet-head"><div><span className="eyebrow">PUBLISH TEMPLATE</span><h2>Share your prompt</h2></div><button className="sheet-close" onClick={()=>setPublishOpen(false)}><Icon name="close" size={16}/></button></div><p className="publish-intro">Add a little context so people can discover and use your template.</p><label>Template name<input value={publish.name} onChange={e=>setPublish(p=>({...p,name:e.target.value}))} placeholder="e.g. Cinematic product image"/></label><label>Your name <small>optional</small><input value={publish.author} onChange={e=>setPublish(p=>({...p,author:e.target.value}))} placeholder="Your name"/></label><label>Use case<input value={publish.useCase} onChange={e=>setPublish(p=>({...p,useCase:e.target.value}))} placeholder="What is this prompt best for?"/></label><label>Best AI models <small>optional · up to 4</small><button type="button" className="model-select" onClick={()=>setModelPickerOpen(true)}><span>{publish.models.length?<span className="model-selected-stack">{publish.models.map(id=>{const m=modelCatalog.find(x=>x.id===id)||fallbackModels.find(x=>x.id===id);return m?<span className="model-selected-chip" key={id}><ModelMark model={m} size={24}/><b>{m.name}</b></span>:null})}</span>:<><span className="model-placeholder-mark">+</span><span><b>Choose models</b><small>Search the live catalog and select up to four</small></span></>}</span><span className="model-chevron">⌄</span></button></label><label>Tags <small>comma separated</small><input value={publish.tags} onChange={e=>setPublish(p=>({...p,tags:e.target.value}))} placeholder="image, product, cinematic, marketing"/></label><button className="pri publish-submit" onClick={submitTemplate}>Publish template</button></section></div>}
   <div className={"toast "+(toast?"show":"")}>{toast}</div>
  </div>;
 }
