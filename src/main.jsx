@@ -89,16 +89,10 @@ function WelcomeSheet({onContinue}){
 const templates=[
  {name:"Explain simply",category:"Text",tags:["explain","education","beginner"],text:"Explain [topic] to me as if I am a beginner. Use one everyday analogy and end with three key points."},
  {name:"Write an email",category:"Business",tags:["email","business","communication"],text:"Write a short, polite email to [person] about [subject]. Keep it under 120 words and end with a clear next step."},
- {name:"Summarize text",category:"Text",tags:["summary","summarize","document"],text:"Summarize the text below in five bullet points, then list any action items.
-
-[paste text]"},
- {name:"Code review",category:"Code",tags:["code","coding","debug","review"],text:"Act as a senior developer. Review this code for bugs, readability and performance. List issues by severity and suggest fixes.
-
-[paste code]"},
+ {name:"Summarize text",category:"Text",tags:["summary","summarize","document"],text:"Summarize the text below in five bullet points, then list any action items.\n\n[paste text]"},
+ {name:"Code review",category:"Code",tags:["code","coding","debug","review"],text:"Act as a senior developer. Review this code for bugs, readability and performance. List issues by severity and suggest fixes.\n\n[paste code]"},
  {name:"Lesson plan",category:"Education",tags:["lesson","teaching","education"],text:"Create a 45-minute lesson plan on [topic] for [level] students, with objectives, activities and a short quiz."},
- {name:"Rewrite better",category:"Text",tags:["rewrite","edit","writing"],text:"Rewrite the text below to be clearer and more concise. Keep my meaning and tone.
-
-[paste text]"},
+ {name:"Rewrite better",category:"Text",tags:["rewrite","edit","writing"],text:"Rewrite the text below to be clearer and more concise. Keep my meaning and tone.\n\n[paste text]"},
  {name:"Image prompt",category:"Image",tags:["image","visual","art","design"],text:"Create a detailed image-generation prompt for [subject]. Specify composition, lighting, camera angle, style, mood, colors, environment, and important details."},
  {name:"Image editing brief",category:"Image",tags:["image","edit","photo","retouch"],text:"Write an image-editing instruction for [image]. Describe exactly what to change, what to preserve, the desired style, and the final visual result."},
  {name:"Video concept",category:"Video",tags:["video","film","reel","youtube"],text:"Develop a video concept about [topic]. Include hook, audience, scene-by-scene structure, visuals, voiceover, pacing, and a strong ending."},
@@ -190,9 +184,7 @@ function AppShell(){
 
 ").replace(/\s+([,.!?;:])/g,"$1").trim();
 
- const adjust=async()=>{if(!t||adjusting)return;setAdjusting(true);snapshot();await new Promise(r=>setTimeout(r,prefs.fx?420:0));setPrompt("Improve and execute the following request clearly and precisely while preserving the user's intent:
-
-"+clean(prompt));setAdjusting(false);notify("Prompt adjusted")};
+ const adjust=async()=>{if(!t||adjusting)return;setAdjusting(true);snapshot();await new Promise(r=>setTimeout(r,prefs.fx?420:0));setPrompt("Improve and execute the following request clearly and precisely while preserving the user's intent:\n\n"+clean(prompt));setAdjusting(false);notify("Prompt adjusted")};
  const improve=()=>{if(!t)return;setSheetOpen(true)};
  const applyUpgrade=id=>{const additions={
   clarify:"Clarify the objective, audience, desired outcome, and any ambiguity before answering.",
@@ -201,9 +193,7 @@ function AppShell(){
   constraints:"Respect these constraints: preserve my intent, avoid unnecessary assumptions, be actionable, and flag missing information.",
   concise:"Be concise. Remove repetition and filler while preserving every essential requirement and detail.",
   polish:"Polish the wording for precision, clarity, grammar, and natural flow without changing my intent."
- };snapshot();setPrompt(clean(prompt)+"
-
-"+additions[id]);setSheetOpen(false);setMobileOpen(false);notify("Prompt upgraded");setTimeout(()=>editor.current?.focus(),0)};
+ };snapshot();setPrompt(clean(prompt)+"\n\n"+additions[id]);setSheetOpen(false);setMobileOpen(false);notify("Prompt upgraded");setTimeout(()=>editor.current?.focus(),0)};
  const copy=async()=>{if(!t)return;try{await navigator.clipboard.writeText(prompt)}catch{const a=document.createElement("textarea");a.value=prompt;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}notify("Copied")};
  const save=()=>{if(!t)return;const item={id:Date.now(),text:prompt,ts:Date.now(),pinned:false};setHistory(h=>[item,...h.filter(x=>x.text!==prompt)].slice(0,100));notify("Saved to history")};
  const undoPrompt=()=>{if(!undo.length)return;setPrompt(undo[undo.length-1]);setUndo(v=>v.slice(0,-1));notify("Restored")};
@@ -307,9 +297,7 @@ function AppShell(){
       {(settingsSection==="canvas"||(!settingsSection&&settingsSearch&&"canvas font line spacing word count".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Canvas</h3><Row label="Line spacing"><Segment value={prefs.lh} values={[[30,"Tight"],[34,"Normal"],[40,"Loose"]]} onChange={v=>setPref("lh",+v)}/></Row><Row label="Font"><Segment value={prefs.font} values={[["serif","Serif"],["sans","Sans"],["mono","Mono"]]} onChange={v=>setPref("font",v)}/></Row><Row label="Word count"><Switch value={prefs.count} onChange={v=>setPref("count",v)}/></Row></div>}
       {(settingsSection==="typing"||(!settingsSection&&settingsSearch&&"typing autocomplete spell check draft effects".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Typing</h3><Row label="Autocomplete" sub="Suggests words and phrases"><Switch value={prefs.auto} onChange={v=>setPref("auto",v)}/></Row><Row label="Spell check"><Switch value={prefs.spell} onChange={v=>setPref("spell",v)}/></Row><Row label="Save draft automatically"><Switch value={prefs.draft} onChange={v=>setPref("draft",v)}/></Row><Row label="Effects" sub="Animations and haptics"><Switch value={prefs.fx} onChange={v=>setPref("fx",v)}/></Row></div>}
       {(settingsSection==="appearance"||(!settingsSection&&settingsSearch&&"appearance theme writing size".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Appearance</h3><Row label="Theme"><Segment value={prefs.theme} values={[["system","Auto"],["light","Light"],["dark","Dark"]]} onChange={v=>setPref("theme",v)}/></Row><Row label="Writing size"><input type="range" min="16" max="26" value={prefs.size} onChange={e=>setPref("size",+e.target.value)}/></Row></div>}
-      {(settingsSection==="data"||(!settingsSection&&settingsSearch&&"data export delete all".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Data</h3><Row label="Export" sub="Copy every saved prompt as text"><button className="outline-btn" onClick={async()=>{const txt=history.map(x=>x.text).join("
-
-");if(!txt)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(txt);notify("All prompts copied")}catch{notify("Copy failed")}}}>Copy all</button></Row><Row label="Delete all data" sub="Saved prompts and settings"><button className="outline-btn" onClick={()=>{setHistory([]);setPrefs(DEFAULTS);setPrompt("");notify("All data deleted")}}>Delete</button></Row></div>}
+      {(settingsSection==="data"||(!settingsSection&&settingsSearch&&"data export delete all".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Data</h3><Row label="Export" sub="Copy every saved prompt as text"><button className="outline-btn" onClick={async()=>{const txt=history.map(x=>x.text).join("\n\n");if(!txt)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(txt);notify("All prompts copied")}catch{notify("Copy failed")}}}>Copy all</button></Row><Row label="Delete all data" sub="Saved prompts and settings"><button className="outline-btn" onClick={()=>{setHistory([]);setPrefs(DEFAULTS);setPrompt("");notify("All data deleted")}}>Delete</button></Row></div>}
       {!settingsSection&&settingsSearch&&!["canvas font line spacing word count","typing autocomplete spell check draft effects","appearance theme writing size","data export delete all"].some(x=>x.includes(settingsSearch.toLowerCase()))&&<div className="empty"><b>No settings found</b><span>Try canvas, typing, appearance, or data.</span></div>}
     </div>}
    </div></section>}
