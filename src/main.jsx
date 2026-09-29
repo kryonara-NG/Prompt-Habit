@@ -17,7 +17,8 @@ function Icon({name,size=22}){
   history:<><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
   template:<><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M10 10v10"/></>,
   settings:<><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></>,
-  close:<><path d="m6 6 12 12M18 6 6 18"/></>
+  close:<><path d="m6 6 12 12M18 6 6 18"/></>,
+  more:<><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></>
  };
  return <svg className="i" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{p[name]}</svg>;
 }
@@ -72,6 +73,9 @@ function AppShell(){
  const [undo,setUndo]=useState([]);
  const [sheetOpen,setSheetOpen]=useState(false);
  const [mobileOpen,setMobileOpen]=useState(false);
+ const [moreOpen,setMoreOpen]=useState(false);
+ const [publishOpen,setPublishOpen]=useState(false);
+ const [publish,setPublish]=useState({name:"",author:"",useCase:"",model:"",tags:""});
  const [adjusting,setAdjusting]=useState(false);
  const [listening,setListening]=useState(false);
  const [toast,setToast]=useState("");
@@ -128,6 +132,9 @@ function AppShell(){
  const save=()=>{if(!t)return;const item={id:Date.now(),text:prompt,ts:Date.now(),pinned:false};setHistory(h=>[item,...h.filter(x=>x.text!==prompt)].slice(0,100));notify("Saved to history")};
  const undoPrompt=()=>{if(!undo.length)return;setPrompt(undo[undo.length-1]);setUndo(v=>v.slice(0,-1));notify("Restored")};
  const clear=()=>{if(!prompt)return;snapshot();setPrompt("");notify("Cleared. Undo to restore")};
+ const exportPrompt=async()=>{if(!t)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(prompt);notify("Prompt exported")}catch{notify("Export failed")}};
+ const publishTemplate=()=>{if(!t)return notify("Write a prompt first");setPublish({name:"",author:"",useCase:"",model:"",tags:""});setMoreOpen(false);setPublishOpen(true)};
+ const submitTemplate=()=>{const name=publish.name.trim();if(!name||!publish.useCase.trim())return notify("Add a template name and use case");const item={id:Date.now(),name,category:"Community",tags:publish.tags.split(",").map(x=>x.trim()).filter(Boolean),text:prompt,useCase:publish.useCase.trim(),model:publish.model.trim(),author:publish.author.trim()};setHistory(h=>[...h]);try{localStorage.setItem(KEY+":published:"+item.id,JSON.stringify(item))}catch{}setPublishOpen(false);notify("Template published")};
  const load=s=>{snapshot();setPrompt(s);setScreen("write");setMobileOpen(false);setTimeout(()=>editor.current?.focus(),0)};
  const setPref=(k,v)=>setPrefs(p=>({...p,[k]:v}));
 
@@ -188,7 +195,7 @@ function AppShell(){
   try{rec.start()}catch{setListening(false);notify("Could not start microphone")}
  };
  return <div className={"app "+(screen==="write"?"writing":"")}>
-  <header><button className="brand-title" onClick={()=>setScreen("write")}>Prompt Habit</button><span className="meta">{prefs.count?wordCount+(wordCount===1?" word":" words"):""}</span><button className="clear-link" onClick={clear} hidden={!t}>Clear</button></header>
+  <header><button className="brand-title" onClick={()=>setScreen("write")}>Prompt Habit</button><span className="meta">{prefs.count?wordCount+(wordCount===1?" word":" words"):""}</span><div className="header-actions"><button className="more-button" onClick={()=>setMoreOpen(v=>!v)} aria-label="More options" aria-expanded={moreOpen}><Icon name="more" size={22}/></button>{moreOpen&&<div className="more-menu" role="menu"><button onClick={save} disabled={!t}><Icon name="save" size={16}/><span>Save</span></button><button onClick={publishTemplate} disabled={!t}><Icon name="template" size={16}/><span>Publish as template</span></button><button onClick={exportPrompt} disabled={!t}><Icon name="copy" size={16}/><span>Export</span></button><div className="menu-divider"/><button className="danger" onClick={()=>{clear();setMoreOpen(false)}} disabled={!t}><span>Clear</span></button></div>}</div></header>
   <main>
    {screen==="write"&&<section className="screen on write-screen">
     <div className="sheet"><div className="progress-line"/><div ref={mirrorRef} aria-hidden="true"/><textarea ref={editor} value={prompt} onChange={e=>updatePrompt(e.target.value)} placeholder="Write your prompt here. Say who the AI should be, what it should do, and how the answer should look." spellCheck={prefs.spell}/><button ref={micRef} className={"mic "+(listening?"on":"")} onClick={mic} aria-label={listening?"Listening":"Speak your prompt"}><Icon name="mic" size={14}/></button></div>
@@ -236,6 +243,7 @@ function AppShell(){
    <button className={screen==="settings"?"selected":""} onClick={()=>setScreen("settings")}><Icon name="settings" size={20}/><span>Settings</span></button>
   </nav>
   <UpgradeSheet open={sheetOpen} onClose={()=>setSheetOpen(false)} onApply={applyUpgrade} disabled={!t}/>
+  {publishOpen&&<div className="publish-layer" role="dialog" aria-modal="true"><button className="sheet-backdrop" aria-label="Close publish form" onClick={()=>setPublishOpen(false)}/><section className="publish-sheet"><div className="sheet-handle"/><div className="sheet-head"><div><span className="eyebrow">PUBLISH TEMPLATE</span><h2>Share your prompt</h2></div><button className="sheet-close" onClick={()=>setPublishOpen(false)}><Icon name="close" size={16}/></button></div><p className="publish-intro">Add a little context so people can discover and use your template.</p><label>Template name<input value={publish.name} onChange={e=>setPublish(p=>({...p,name:e.target.value}))} placeholder="e.g. Cinematic product image"/></label><label>Your name <small>optional</small><input value={publish.author} onChange={e=>setPublish(p=>({...p,author:e.target.value}))} placeholder="Your name"/></label><label>Use case<input value={publish.useCase} onChange={e=>setPublish(p=>({...p,useCase:e.target.value}))} placeholder="What is this prompt best for?"/></label><label>Best AI model <small>optional</small><input value={publish.model} onChange={e=>setPublish(p=>({...p,model:e.target.value}))} placeholder="e.g. GPT, Claude, Gemini, Midjourney"/></label><label>Tags <small>comma separated</small><input value={publish.tags} onChange={e=>setPublish(p=>({...p,tags:e.target.value}))} placeholder="image, product, cinematic, marketing"/></label><button className="pri publish-submit" onClick={submitTemplate}>Publish template</button></section></div>}
   <div className={"toast "+(toast?"show":"")}>{toast}</div>
  </div>;
 }
