@@ -70,6 +70,7 @@ function AppShell(){
  const [screen,setScreen]=useState("write");
  const [prefs,setPrefs]=useState(()=>{try{return {...DEFAULTS,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{return {...DEFAULTS}}});
  const [history,setHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem(KEY+":history")||"[]")}catch{return []}});
+ const [publishedTemplates,setPublishedTemplates]=useState(()=>{try{return Object.keys(localStorage).filter(k=>k.startsWith(KEY+":published:")).map(k=>JSON.parse(localStorage.getItem(k))).filter(Boolean)}catch{return []}});
  const [undo,setUndo]=useState([]);
  const [sheetOpen,setSheetOpen]=useState(false);
  const [mobileOpen,setMobileOpen]=useState(false);
@@ -131,16 +132,17 @@ function AppShell(){
  const copy=async()=>{if(!t)return;try{await navigator.clipboard.writeText(prompt)}catch{const a=document.createElement("textarea");a.value=prompt;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}notify("Copied")};
  const save=()=>{if(!t)return;const item={id:Date.now(),text:prompt,ts:Date.now(),pinned:false};setHistory(h=>[item,...h.filter(x=>x.text!==prompt)].slice(0,100));notify("Saved to history")};
  const undoPrompt=()=>{if(!undo.length)return;setPrompt(undo[undo.length-1]);setUndo(v=>v.slice(0,-1));notify("Restored")};
- const clear=()=>{if(!prompt)return;snapshot();setPrompt("");notify("Cleared. Undo to restore")};
+ const clear=()=>{if(!prompt)return;snapshot();try{localStorage.setItem(KEY+":recovery",prompt)}catch{};setPrompt("");notify("Cleared. Your last draft is recoverable")};
  const exportPrompt=async()=>{if(!t)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(prompt);notify("Prompt exported")}catch{notify("Export failed")}};
  const publishTemplate=()=>{if(!t)return notify("Write a prompt first");setPublish({name:"",author:"",useCase:"",model:"",tags:""});setMoreOpen(false);setPublishOpen(true)};
- const submitTemplate=()=>{const name=publish.name.trim();if(!name||!publish.useCase.trim())return notify("Add a template name and use case");const item={id:Date.now(),name,category:"Community",tags:publish.tags.split(",").map(x=>x.trim()).filter(Boolean),text:prompt,useCase:publish.useCase.trim(),model:publish.model.trim(),author:publish.author.trim()};setHistory(h=>[...h]);try{localStorage.setItem(KEY+":published:"+item.id,JSON.stringify(item))}catch{}setPublishOpen(false);notify("Template published")};
+ const submitTemplate=()=>{const name=publish.name.trim();if(!name||!publish.useCase.trim())return notify("Add a template name and use case");const item={id:Date.now(),name,category:"Community",tags:publish.tags.split(",").map(x=>x.trim()).filter(Boolean),text:prompt,useCase:publish.useCase.trim(),model:publish.model.trim(),author:publish.author.trim()};setPublishedTemplates(v=>[item,...v]);try{localStorage.setItem(KEY+":published:"+item.id,JSON.stringify(item))}catch{};setPublishOpen(false);notify("Template published")};
  const load=s=>{snapshot();setPrompt(s);setScreen("write");setMobileOpen(false);setTimeout(()=>editor.current?.focus(),0)};
  const setPref=(k,v)=>setPrefs(p=>({...p,[k]:v}));
 
  const suggestions=useMemo(()=>{if(!prefs.auto||!prompt)return [];const last=prompt.slice(0,prompt.length).split(/\s+/).pop().toLowerCase();const words=["clearly","step by step","with examples","in a table","as a checklist","for a beginner","professionally","concisely","with constraints"];return words.filter(x=>x.startsWith(last)&&x!==last).slice(0,3)},[prompt,prefs.auto]);
- const templateCategories=[...new Set(templates.map(x=>x.category))];
- const templateResults=templates.filter(x=>{
+ const allTemplates=[...publishedTemplates,...templates];
+ const templateCategories=[...new Set(allTemplates.map(x=>x.category))];
+ const templateResults=allTemplates.filter(x=>{
   const q=search.trim().toLowerCase();
   const matchesCategory=filter==="all"||x.category===filter;
   const haystack=[x.name,x.category,...x.tags,x.text].join(" ").toLowerCase();
@@ -216,7 +218,7 @@ function AppShell(){
     </div>
     {groupedTemplates.length?groupedTemplates.map(group=><div className="template-group" key={group.category}>
       <div className="template-group-head"><h3>{group.category}</h3><span>{group.items.length}</span></div>
-      {group.items.map(item=><button className="template-item" key={item.name} onClick={()=>load(item.text)}><div className="template-item-top"><b>{item.name}</b><span className="template-type">{item.category}</span></div><span>{item.text}</span></button>)}
+      {group.items.map(item=><button className="template-item" key={item.id||item.name} onClick={()=>load(item.text)}><div className="template-item-top"><b>{item.name}</b><span className="template-type">{item.category}</span></div><span>{item.text}</span>{item.useCase&&<small className="template-meta">Use case: {item.useCase}{item.model?` · Best with: ${item.model}`:""}{item.author?` · By ${item.author}`:""}</small>}</button>)}
     </div>):<div className="empty"><b>No templates found</b><span>Try a task such as image, video, coding, research, or email.</span></div>}
    </div></section>}
    {screen==="settings"&&<section className="screen on"><div className="scroll settings">
