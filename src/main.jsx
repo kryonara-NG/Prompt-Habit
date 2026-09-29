@@ -45,9 +45,9 @@ function WelcomeSheet({onContinue}){
    <div className="welcome-copy">
     <span className="welcome-eyebrow">WELCOME TO PROMPT HABIT</span>
     <h1 id="welcome-title">Turn your thoughts into better prompts.</h1>
-    <p>A clean space to write, improve, save, and reuse prompts — one idea at a time.</p>
+    <p>A clean space to write, improve, save, and reuse prompts, one idea at a time.</p>
    </div>
-   <button className="welcome-start" onClick={onContinue}>Start using Prompt Habit <span aria-hidden="true">→</span></button>
+   <button className="welcome-start" onClick={onContinue}>Start using Prompt Habit</button>
   </section>
  </div>;
 }
@@ -247,7 +247,7 @@ function AppShell(){
     </div>
     {groupedTemplates.length?groupedTemplates.map(group=><div className="template-group" key={group.category}>
       <div className="template-group-head"><h3>{group.category}</h3><span>{group.items.length}</span></div>
-      {group.items.map(item=><button className="template-item" key={item.id||item.name} onClick={()=>load(item.text)}><div className="template-item-top"><b>{item.name}</b><span className="template-type">{item.category}</span></div><span>{item.text}</span>{item.useCase&&<small className="template-meta">Use case: {item.useCase}{item.model?` · Best with: ${item.model}`:""}{item.author?` · By ${item.author}`:""}</small>}</button>)}
+      {group.items.map(item=><button className="template-item" key={item.id||item.name} onClick={()=>load(item.text)}><div className="template-item-top"><b>{item.name}</b><span className="template-type">{item.category}</span></div><span>{item.text}</span>{item.useCase&&<small className="template-meta">Use case: {item.useCase}{item.model?`, best with ${item.model}`:""}{item.author?`, by ${item.author}`:""}</small>}</button>)}
     </div>):<div className="empty"><b>No templates found</b><span>Try a task such as image, video, coding, research, or email.</span></div>}
    </div></section>}
    {screen==="settings"&&<section className="screen on"><div className="scroll settings">
@@ -263,7 +263,7 @@ function AppShell(){
     <h3>General</h3>
     <Row label="Theme"><Segment value={prefs.theme} values={[["system","Auto"],["light","Light"],["dark","Dark"]]} onChange={v=>setPref("theme",v)}/></Row>
     <Row label="Writing size"><input type="range" min="16" max="26" value={prefs.size} onChange={e=>setPref("size",+e.target.value)}/></Row>
-    <Row label="Export" sub="Copy every saved prompt as text"><button className="outline-btn" onClick={async()=>{const txt=history.map(x=>x.text).join("\n\n---\n\n");if(!txt)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(txt);notify("All prompts copied")}catch{notify("Copy failed")}}}>Copy all</button></Row>
+    <Row label="Export" sub="Copy every saved prompt as text"><button className="outline-btn" onClick={async()=>{const txt=history.map(x=>x.text).join("\n\n");if(!txt)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(txt);notify("All prompts copied")}catch{notify("Copy failed")}}}>Copy all</button></Row>
     <Row label="Delete all data" sub="Saved prompts and settings"><button className="outline-btn" onClick={()=>{setHistory([]);setPrefs(DEFAULTS);setPrompt("");notify("All data deleted")}}>Delete</button></Row>
    </div></section>}
   </main>
