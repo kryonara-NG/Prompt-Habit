@@ -37,7 +37,7 @@ function UpgradeSheet({open,onClose,onApply,prompt}){
 }
 
 function Editor(){
- const [prompt,setPrompt]=useState(""); const [adjusting,setAdjusting]=useState(false); const [sheetOpen,setSheetOpen]=useState(false); const [zoom,setZoom]=useState(100); const [mobileTools,setMobileTools]=useState(false); const editor=useRef(null); const touchStart=useRef(null);
+ const [prompt,setPrompt]=useState(""); const [adjusting,setAdjusting]=useState(false); const [sheetOpen,setSheetOpen]=useState(false); const [mobileTools,setMobileTools]=useState(false); const editor=useRef(null); const touchStart=useRef(null);
  useEffect(()=>editor.current?.focus(),[]);
  const clean=(value)=>value.replace(/\s+/g," ").replace(/\s+([,.!?;:])/g,"$1").trim();
  const adjust=async()=>{if(!prompt.trim()||adjusting)return;setAdjusting(true);await new Promise(r=>setTimeout(r,300));setPrompt("Improve and execute the following request clearly and precisely while preserving the user's intent:\n\n"+clean(prompt));setAdjusting(false);requestAnimationFrame(()=>editor.current?.focus())};
@@ -54,10 +54,9 @@ function Editor(){
   };
   setPrompt(p+"\n\n"+additions[id]);setSheetOpen(false);setMobileTools(false);requestAnimationFrame(()=>editor.current?.focus());
  };
- const zoomBy=(delta)=>setZoom(v=>Math.min(140,Math.max(75,v+delta)));
  const onTouchStart=e=>{touchStart.current=e.touches[0].clientY};
  const onTouchEnd=e=>{if(touchStart.current===null)return;const distance=touchStart.current-e.changedTouches[0].clientY;if(distance>26){setMobileTools(true);navigator.vibrate?.(12)}else if(distance<-26){setMobileTools(false)}touchStart.current=null};
- const editorStyle={fontSize:"clamp(18px,2vw,25px)",transform:"scale("+zoom/100+")",transformOrigin:"top left",width:(10000/zoom)+"%"};
+ const editorStyle={fontSize:"clamp(18px,2vw,25px)"};
  return <main className="editor-shell" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
   <section className="canvas">
    <header className="tool-header">
@@ -70,7 +69,6 @@ function Editor(){
    <textarea ref={editor} className="prompt-input" style={editorStyle} value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Type your prompt here..." spellCheck="true"/>
   </section>
   <div className={mobileTools?"mobile-dock open":"mobile-dock"}><span className="dock-pill" aria-hidden="true"/><div className="mobile-tools"><button onClick={adjust} disabled={!prompt.trim()||adjusting}><Icon type="spark"/><span>Adjust</span></button><button onClick={()=>setSheetOpen(true)}><Icon type="spark"/><span>Upgrade</span></button><button onClick={copy} disabled={!prompt.trim()}><Icon type="copy"/><span>Copy</span></button></div></div>
-  <div className="status-bar"><span>Ready</span><div className="zoom-control"><button onClick={()=>zoomBy(-5)} aria-label="Zoom out"><Icon type="minus"/></button><output>{zoom}%</output><button onClick={()=>zoomBy(5)} aria-label="Zoom in"><Icon type="plus"/></button></div></div>
   <footer className="app-footer">Crafted by Kryonara · For prompt engineers, vibe coders & builders</footer>
   <UpgradeSheet open={sheetOpen} onClose={()=>setSheetOpen(false)} onApply={applyUpgrade} prompt={prompt}/>
  </main>;
