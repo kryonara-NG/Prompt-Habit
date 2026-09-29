@@ -161,3 +161,29 @@ input[type=range]{width:130px;accent-color:var(--ink)}.outline-btn{border:1.5px 
   .publish-sheet{width:100%;max-height:92vh;padding-left:16px;padding-right:16px;border-left:0;border-right:0;border-radius:20px 20px 0 0}
   .publish-sheet input{height:46px}
 }
+
+/* First-entry welcome bottom sheet */
+.welcome-layer{position:fixed;inset:0;z-index:100;display:flex;align-items:flex-end;justify-content:center;padding:0 14px;animation:welcome-fade .2s ease-out}
+.welcome-backdrop{position:absolute;inset:0;border:0;background:rgba(0,0,0,.56);backdrop-filter:blur(5px);cursor:default}
+.welcome-sheet{position:relative;width:min(680px,100%);margin:0 auto;max-height:min(88vh,760px);overflow:auto;padding:12px 22px calc(24px + env(safe-area-inset-bottom));background:var(--bg);color:var(--ink);border:1px solid var(--line);border-bottom:0;border-radius:28px 28px 0 0;box-shadow:0 -24px 80px rgba(0,0,0,.22);animation:welcome-up .38s cubic-bezier(.22,.8,.22,1) both}
+.welcome-handle{width:42px;height:4px;border-radius:99px;background:var(--mute);margin:0 auto 10px;opacity:.7}
+.welcome-illustration{height:220px;display:grid;place-items:center;overflow:hidden;margin:0 auto 2px}
+.welcome-illustration svg{display:block;width:min(420px,92%);height:auto;overflow:visible}
+.welcome-copy{text-align:center;max-width:540px;margin:0 auto}
+.welcome-eyebrow{display:block;color:var(--mute);font:600 9px/1.2 "IBM Plex Sans",sans-serif;letter-spacing:.18em}
+.welcome-copy h1{margin:8px auto 9px;font:500 clamp(28px,5vw,42px)/1.02 "Newsreader",Georgia,serif;letter-spacing:-.035em;max-width:520px}
+.welcome-copy p{margin:0 auto;color:var(--mute);font:400 14px/1.5 "IBM Plex Sans",sans-serif;max-width:470px}
+.welcome-start{width:100%;max-width:540px;height:58px;margin:22px auto 0;border:0;border-radius:16px;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center;gap:10px;font:600 15px "IBM Plex Sans",sans-serif;box-shadow:0 8px 22px rgba(0,0,0,.12)}
+.welcome-start span{font-size:20px;line-height:1;transition:transform .15s ease}
+.welcome-start:hover span{transform:translateX(3px)}
+@keyframes welcome-up{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:none}}
+@keyframes welcome-fade{from{opacity:.5}to{opacity:1}}
+@media(max-width:700px){
+ .welcome-layer{padding:0}
+ .welcome-sheet{width:100%;max-height:90vh;padding:9px 18px calc(18px + env(safe-area-inset-bottom));border-radius:24px 24px 0 0}
+ .welcome-illustration{height:175px;margin-bottom:0}
+ .welcome-copy h1{font-size:31px;max-width:390px}
+ .welcome-copy p{font-size:13px;max-width:350px}
+ .welcome-start{height:54px;margin-top:18px;border-radius:15px}
+}
+@media(prefers-reduced-motion:reduce){.welcome-layer,.welcome-sheet{animation:none}}
