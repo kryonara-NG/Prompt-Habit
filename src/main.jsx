@@ -7,13 +7,18 @@ const DEFAULTS={theme:"system",size:20,lines:false,lh:34,font:"serif",count:true
 const FONTS={serif:'"Newsreader",Georgia,serif',sans:'"IBM Plex Sans",system-ui,sans-serif',mono:"ui-monospace,Menlo,Consolas,monospace"};
 
 const modelCatalog=[
- {id:"gpt-5",name:"GPT-5",company:"OpenAI",mark:"✦",tone:"openai"},
- {id:"claude",name:"Claude",company:"Anthropic",mark:"C",tone:"anthropic"},
- {id:"gemini",name:"Gemini",company:"Google",mark:"✦",tone:"google"},
- {id:"grok",name:"Grok",company:"xAI",mark:"𝕏",tone:"xai"},
- {id:"llama",name:"Llama",company:"Meta",mark:"∞",tone:"meta"},
- {id:"mistral",name:"Mistral",company:"Mistral AI",mark:"M",tone:"mistral"},
- {id:"midjourney",name:"Midjourney",company:"Midjourney",mark:"◒",tone:"midjourney"},
+ {id:"gpt-5",name:"GPT-5",company:"OpenAI",mark:"knot",tone:"openai"},
+ {id:"gpt-5-mini",name:"GPT-5 mini",company:"OpenAI",mark:"knot",tone:"openai"},
+ {id:"claude-opus",name:"Claude Opus",company:"Anthropic",mark:"claude",tone:"anthropic"},
+ {id:"claude-sonnet",name:"Claude Sonnet",company:"Anthropic",mark:"claude",tone:"anthropic"},
+ {id:"gemini",name:"Gemini",company:"Google",mark:"gemini",tone:"google"},
+ {id:"grok",name:"Grok",company:"xAI",mark:"x",tone:"xai"},
+ {id:"llama",name:"Llama",company:"Meta",mark:"meta",tone:"meta"},
+ {id:"mistral",name:"Mistral",company:"Mistral AI",mark:"mistral",tone:"mistral"},
+ {id:"deepseek",name:"DeepSeek",company:"DeepSeek",mark:"deepseek",tone:"deepseek"},
+ {id:"qwen",name:"Qwen",company:"Alibaba Cloud",mark:"qwen",tone:"qwen"},
+ {id:"cohere",name:"Command",company:"Cohere",mark:"cohere",tone:"cohere"},
+ {id:"midjourney",name:"Midjourney",company:"Midjourney",mark:"midjourney",tone:"midjourney"},
  {id:"ideogram",name:"Ideogram",company:"Ideogram",mark:"I",tone:"ideogram"},
  {id:"runway",name:"Runway",company:"Runway",mark:"R",tone:"runway"},
  {id:"other",name:"Other model",company:"Custom",mark:"+",tone:"custom"}
@@ -21,7 +26,22 @@ const modelCatalog=[
 
 function ModelMark({model,size=32}){
  const m=model||modelCatalog[0];
- return <span className={"model-mark "+(m.tone||"custom")} style={{width:size,height:size}} aria-hidden="true">{m.mark}</span>;
+ const marks={
+  knot:<><circle cx="12" cy="12" r="5.5"/><path d="M6 8.5c2.2-3.5 7.8-3.5 10 0M6 15.5c2.2 3.5 7.8 3.5 10 0M8.5 6c3.5 2.2 3.5 7.8 0 10M15.5 6c-3.5 2.2-3.5 7.8 0 10"/></>,
+  claude:<path d="M7 5h10M6 9h12M7 13h10M6 17h12"/>,
+  gemini:<path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2L12 3Z"/>,
+  x:<path d="M5 5l14 14M19 5 5 19"/>,
+  meta:<path d="M4 15c1.5-6 4-9 6-9 2.2 0 2.7 6 4.7 6 1.8 0 2.4-4 4.3-4 1.3 0 2.1 1.2 2.1 3.2 0 3.7-2.4 6.8-4.8 6.8-2.6 0-3.3-5.8-5.5-5.8-2 0-2.6 3.8-4.8 3.8-1.2 0-2-.7-2-2Z"/>,
+  mistral:<path d="M5 6h14M5 10h9M5 14h14M5 18h9"/>,
+  deepseek:<path d="M5 14c0-5 3.1-8 7-8 4.1 0 7 3 7 7 0 3-2 5-5 5H9c-2.2 0-4-1.8-4-4Z"/>,
+  qwen:<path d="M7 17c0-6 2.2-10 5-10s5 4 5 10M7 13h10M9 18l6-12"/>,
+  cohere:<circle cx="12" cy="12" r="7"/>,
+  midjourney:<path d="M4 15c4-7 8-7 16 0M6 10c4-4 8-4 12 0M8 6h8"/>,
+  I:<path d="M7 5h10M12 5v14M7 19h10"/>,
+  R:<path d="M7 19V5h6a4 4 0 0 1 0 8H7M13 13l5 6"/>,
+  "+":<><path d="M12 5v14M5 12h14"/></>
+ };
+ return <span className={"model-mark "+(m.tone||"custom")} style={{width:size,height:size}} aria-hidden="true"><svg viewBox="0 0 24 24">{marks[m.mark]||marks["+"]}</svg></span>;
 }
 
 function ModelPicker({value,onChange,onClose}){
