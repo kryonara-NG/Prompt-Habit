@@ -47,6 +47,13 @@ function normalizeModelCatalog(data){
  return [...unique.values()].sort((a,b)=>(a.company+" "+a.name).localeCompare(b.company+" "+b.name));
 }
 
+const PROVIDER_DOMAINS={openai:"openai.com",anthropic:"anthropic.com",google:"google.com",xai:"x.ai",meta:"meta.com",mistral:"mistral.ai",deepseek:"deepseek.com",qwen:"qwen.ai",cohere:"cohere.com",midjourney:"midjourney.com",ideogram:"ideogram.ai",runway:"runwayml.com",perplexity:"perplexity.ai",groq:"groq.com",huggingface:"huggingface.co",togetherai:"together.ai",fireworks:"fireworks.ai",replicate:"replicate.com",amazon:"amazon.com",nvidia:"nvidia.com",microsoft:"microsoft.com",ibm:"ibm.com",moonshotai:"moonshot.ai",zai:"z.ai",minimax:"minimax.io",bytedance:"bytedance.com",elevenlabs:"elevenlabs.io",stability:"stability.ai",blackforestlabs:"blackforestlabs.ai",ai21:"ai21.com",writer:"writer.com",reka:"reka.ai",suno:"suno.com",luma:"lumalabs.ai"};
+function ProviderFavicon({model,size=32}){
+ const domain=model?.domain||PROVIDER_DOMAINS[model?.providerId];
+ const src=model?.favicon||("https://www.google.com/s2/favicons?domain="+encodeURIComponent(domain||"models.dev")+"&sz=64");
+ return <img className="model-favicon" src={src} alt="" width={size} height={size} loading="lazy" referrerPolicy="no-referrer" onError={e=>{e.currentTarget.onerror=null;e.currentTarget.src=model?.logo||("https://models.dev/logos/"+encodeURIComponent(model?.providerId||"openai")+".svg")}}/>;
+}
+
 function ModelMark({model,size=32}){
  const [failed,setFailed]=useState(false);
  const m=model||fallbackModels[0];
@@ -208,6 +215,20 @@ function AppShell(){
  const t=prompt.trim(), wordCount=t?t.split(/\s+/).length:0;
 
  useEffect(()=>{try{localStorage.setItem(KEY,JSON.stringify(prefs))}catch{}},[prefs]);
+ useEffect(()=>{
+  let live=true;
+  fetch("https://models.dev/api.json?type=all").then(r=>{if(!r.ok)throw new Error("model catalog");return r.json()}).then(data=>{
+   if(!live)return;
+   const rows=[];
+   Object.entries(data||{}).forEach(([providerId,provider])=>{
+    Object.entries(provider?.models||{}).forEach(([modelId,model])=>{
+     rows.push({id:providerId+"/"+modelId,name:model?.name||modelId.split("/").pop(),company:provider?.name||providerId,providerId,domain:PROVIDER_DOMAINS[providerId]||"",logo:"https://models.dev/logos/"+encodeURIComponent(providerId)+".svg"});
+    });
+   });
+   if(rows.length)setAvailableModels(rows.sort((a,b)=>a.company.localeCompare(b.company)||a.name.localeCompare(b.name)));
+  }).catch(()=>{});
+  return()=>{live=false};
+ },[]);
  useEffect(()=>{try{localStorage.setItem(KEY+":history",JSON.stringify(history))}catch{}},[history]);
  useEffect(()=>{if(prefs.draft){try{localStorage.setItem(KEY+":draft",prompt)}catch{}}},[prompt,prefs.draft]);
  useEffect(()=>{positionMic()},[prompt,prefs.size,prefs.lh,prefs.font]);
@@ -335,7 +356,7 @@ function AppShell(){
       <button className={"pri "+(adjusting?"busy":"")} onClick={adjust} disabled={!t||adjusting}><Icon name="spark" size={18}/>{adjusting?"Adjusting":"Improve"}</button>
     </div>
    </section>}
-   {screen==="history"&&<section className="screen on"><div className="scroll"><input className="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search saved prompts"/><div className="chips"><button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button><button className={filter==="pin"?"chip active":"chip"} onClick={()=>setFilter("pin")}>Pinned</button></div>{filteredHistory.length?filteredHistory.map(x=><div className="item" key={x.id}><button className="item-body" onClick={()=>load(x.text)}><div className="item-title">{x.text}</div><div className="item-date">{x.pinned?"Pinned, ":""}{new Date(x.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div></button><button className="ic item-pin" onClick={()=>setHistory(h=>h.map(p=>p.id===x.id?{...p,pinned:!p.pinned}:p))}>✦</button></div>):<div className="empty"><b>{history.length?"No matches":"No saved prompts yet"}</b><span>{history.length?"Try a different search.":"Save a prompt from the Write screen."}</span></div>}</div></section>}
+   {screen==="history"&&<section className="screen on"><div className="scroll"><div className="search-wrap"><span aria-hidden="true">⌕</span><input type="search" className="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search saved prompts"/>{search&&<button type="button" className="search-clear" onClick={()=>setSearch("")} aria-label="Clear search">×</button>}</div><div className="chips"><button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button><button className={filter==="pin"?"chip active":"chip"} onClick={()=>setFilter("pin")}>Pinned</button></div>{filteredHistory.length?filteredHistory.map(x=><div className="item" key={x.id}><button className="item-body" onClick={()=>load(x.text)}><div className="item-title">{x.text}</div><div className="item-date">{x.pinned?"Pinned, ":""}{new Date(x.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div></button><button className="ic item-pin" onClick={()=>setHistory(h=>h.map(p=>p.id===x.id?{...p,pinned:!p.pinned}:p))}>✦</button></div>):<div className="empty"><b>{history.length?"No matches":"No saved prompts yet"}</b><span>{history.length?"Try a different search.":"Save a prompt from the Write screen."}</span></div>}</div></section>}
    {screen==="templates"&&<section className="screen on"><div className="scroll template-screen">
     <div className="template-search-wrap"><span className="template-search-icon">⌕</span><input className="search template-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by task: image, video, code, research..."/>{search&&<button className="template-search-clear" onClick={()=>setSearch("")} aria-label="Clear template search">×</button>}</div>
     <div className="template-filters" aria-label="Template categories">
@@ -347,7 +368,7 @@ function AppShell(){
       {group.items.map(item=>{const model=fallbackModels.find(m=>m.name===item.model);const creator=item.author||"Prompt Habit";const initial=creator.trim().charAt(0).toUpperCase()||"P";return <button className="template-item" key={item.id||item.name} onClick={()=>load(item.text)}><div className="template-social-head"><span className="template-avatar">{initial}</span><span className="template-creator"><b>{creator}</b><small>{item.category} template</small></span><span className="template-type">{item.category}</span></div><div className="template-item-title">{item.name}</div><span className="template-item-copy">{item.text}</span><div className="template-social-foot"><span className="template-tags">{(item.tags||[]).slice(0,3).map(tag=><em key={tag}>#{tag}</em>)}</span><span className="template-model">{model?<ModelMark model={model} size={24}/>:null}{Array.isArray(item.models)?(item.models.length?item.models.join(", "):"Prompt Habit"):(item.model||"Prompt Habit")}</span></div>{item.useCase&&<small className="template-meta">{item.useCase}</small>}</button>})}</div>):<div className="empty"><b>No templates found</b><span>Try a task such as image, video, coding, research, or email.</span></div>}
    </div></section>}
    {screen==="settings"&&<section className="screen on"><div className="scroll settings">
-    <div className="settings-search-wrap"><span>⌕</span><input className="search settings-search" value={settingsSearch} onChange={e=>setSettingsSearch(e.target.value)} placeholder="Search settings"/></div>
+    <div className="search-wrap settings-search-wrap"><span aria-hidden="true">⌕</span><input type="search" className="search settings-search" value={settingsSearch} onChange={e=>setSettingsSearch(e.target.value)} placeholder="Search settings"/>{settingsSearch&&<button type="button" className="search-clear" onClick={()=>setSettingsSearch("")} aria-label="Clear settings search">×</button>}</div>
     {!settingsSection&&!settingsSearch&&<div className="settings-home">{[["canvas","Canvas","Writing surface, font, spacing, word count","write"],["typing","Typing","Autocomplete, spell check, drafts, effects","spark"],["appearance","Appearance","Theme and writing size","settings"],["data","Data","Export and delete your Prompt Habit data","save"]].map(([id,title,desc,icon])=><button key={id} className="settings-card" onClick={()=>setSettingsSection(id)}><span className="settings-card-icon"><Icon name={icon} size={18}/></span><span><b>{title}</b><small>{desc}</small></span><span className="settings-card-arrow">›</span></button>)}</div>}
     {(settingsSection||settingsSearch)&&<div className="settings-detail">{settingsSection&&<button className="settings-back" onClick={()=>setSettingsSection("")}>‹ Settings</button>}
       {(settingsSection==="canvas"||(!settingsSection&&settingsSearch&&"canvas font line spacing word count".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Canvas</h3><Row label="Line spacing"><Segment value={prefs.lh} values={[[30,"Tight"],[34,"Normal"],[40,"Loose"]]} onChange={v=>setPref("lh",+v)}/></Row><Row label="Font"><Segment value={prefs.font} values={[["serif","Serif"],["sans","Sans"],["mono","Mono"]]} onChange={v=>setPref("font",v)}/></Row><Row label="Word count"><Switch value={prefs.count} onChange={v=>setPref("count",v)}/></Row></div>}
