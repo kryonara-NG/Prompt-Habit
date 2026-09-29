@@ -6,6 +6,40 @@ const KEY="prompt-habit:v3";
 const DEFAULTS={theme:"system",size:20,lines:false,lh:34,font:"serif",count:true,auto:true,spell:true,draft:true,fx:true};
 const FONTS={serif:'"Newsreader",Georgia,serif',sans:'"IBM Plex Sans",system-ui,sans-serif',mono:"ui-monospace,Menlo,Consolas,monospace"};
 
+const modelCatalog=[
+ {id:"gpt-5",name:"GPT-5",company:"OpenAI",mark:"✦",tone:"openai"},
+ {id:"claude",name:"Claude",company:"Anthropic",mark:"C",tone:"anthropic"},
+ {id:"gemini",name:"Gemini",company:"Google",mark:"✦",tone:"google"},
+ {id:"grok",name:"Grok",company:"xAI",mark:"𝕏",tone:"xai"},
+ {id:"llama",name:"Llama",company:"Meta",mark:"∞",tone:"meta"},
+ {id:"mistral",name:"Mistral",company:"Mistral AI",mark:"M",tone:"mistral"},
+ {id:"midjourney",name:"Midjourney",company:"Midjourney",mark:"◒",tone:"midjourney"},
+ {id:"ideogram",name:"Ideogram",company:"Ideogram",mark:"I",tone:"ideogram"},
+ {id:"runway",name:"Runway",company:"Runway",mark:"R",tone:"runway"},
+ {id:"other",name:"Other model",company:"Custom",mark:"+",tone:"custom"}
+];
+
+function ModelMark({model,size=32}){
+ const m=model||modelCatalog[0];
+ return <span className={"model-mark "+(m.tone||"custom")} style={{width:size,height:size}} aria-hidden="true">{m.mark}</span>;
+}
+
+function ModelPicker({value,onChange,onClose}){
+ const [query,setQuery]=useState("");
+ const [selected,setSelected]=useState(value||"");
+ const results=modelCatalog.filter(m=>(m.name+" "+m.company).toLowerCase().includes(query.trim().toLowerCase()));
+ return <div className="model-picker-layer" role="dialog" aria-modal="true" aria-labelledby="model-picker-title">
+  <button className="model-picker-backdrop" aria-label="Close model picker" onClick={onClose}/>
+  <section className="model-picker">
+   <div className="sheet-handle"/>
+   <div className="model-picker-head"><div><span className="eyebrow">AI MODEL</span><h2 id="model-picker-title">Choose a model</h2></div><button className="sheet-close" onClick={onClose}><Icon name="close" size={16}/></button></div>
+   <div className="model-search"><span>⌕</span><input autoFocus value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search models or companies"/></div>
+   <div className="model-list">{results.map(model=><button type="button" key={model.id} className={"model-option "+(selected===model.id?"selected":"")} onClick={()=>setSelected(model.id)}><ModelMark model={model}/><span className="model-option-copy"><b>{model.name}</b><small>{model.company}</small></span>{selected===model.id&&<span className="model-check">✓</span>}</button>)}{!results.length&&<div className="model-empty">No matching models</div>}</div>
+   <button className="pri model-done" onClick={()=>{onChange(selected);onClose()}} disabled={!selected}>Done</button>
+  </section>
+ </div>;
+}
+
 function Icon({name,size=22}){
  const p={
   copy:<><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></>,
@@ -100,7 +134,7 @@ function AppShell(){
  const [sheetOpen,setSheetOpen]=useState(false);
  const [mobileOpen,setMobileOpen]=useState(false);
  const [moreOpen,setMoreOpen]=useState(false);
- const [publishOpen,setPublishOpen]=useState(false);
+ const [publishOpen,setPublishOpen]=useState(false);\n const [modelPickerOpen,setModelPickerOpen]=useState(false);\n const [settingsSection,setSettingsSection]=useState("");\n const [settingsSearch,setSettingsSearch]=useState("");
  const [publish,setPublish]=useState({name:"",author:"",useCase:"",model:"",tags:""});
  const [adjusting,setAdjusting]=useState(false);
  const [listening,setListening]=useState(false);
@@ -163,7 +197,7 @@ function AppShell(){
  const downloadText=(filename,text)=>{try{const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);return true}catch{return false}};
  const exportPrompt=async()=>{if(!t)return notify("Nothing to export yet");if(downloadText("prompt-habit-prompt.txt",prompt)){notify("Prompt exported")}else{try{await navigator.clipboard.writeText(prompt);notify("Prompt copied instead")}catch{notify("Export failed")}}};
  const publishTemplate=()=>{if(!t)return notify("Write a prompt first");setPublish({name:"",author:"",useCase:"",model:"",tags:""});setMoreOpen(false);setPublishOpen(true)};
- const submitTemplate=()=>{const name=publish.name.trim();if(!name||!publish.useCase.trim())return notify("Add a template name and use case");const item={id:Date.now(),name,category:"Community",tags:publish.tags.split(",").map(x=>x.trim()).filter(Boolean),text:prompt,useCase:publish.useCase.trim(),model:publish.model.trim(),author:publish.author.trim()};setPublishedTemplates(v=>[item,...v]);try{localStorage.setItem(KEY+":published:"+item.id,JSON.stringify(item))}catch{};setPublishOpen(false);notify("Template published")};
+ const submitTemplate=()=>{const name=publish.name.trim();if(!name||!publish.useCase.trim())return notify("Add a template name and use case");const item={id:Date.now(),name,category:"Community",tags:publish.tags.split(",").map(x=>x.trim()).filter(Boolean),text:prompt,useCase:publish.useCase.trim(),model:(modelCatalog.find(x=>x.id===publish.model)?.name||publish.model).trim(),author:publish.author.trim()};setPublishedTemplates(v=>[item,...v]);try{localStorage.setItem(KEY+":published:"+item.id,JSON.stringify(item))}catch{};setPublishOpen(false);notify("Template published")};
  const load=s=>{snapshot();setPrompt(s);setScreen("write");setMobileOpen(false);setTimeout(()=>editor.current?.focus(),0)};
  const setPref=(k,v)=>setPrefs(p=>({...p,[k]:v}));
 
@@ -251,20 +285,15 @@ function AppShell(){
     </div>):<div className="empty"><b>No templates found</b><span>Try a task such as image, video, coding, research, or email.</span></div>}
    </div></section>}
    {screen==="settings"&&<section className="screen on"><div className="scroll settings">
-    <h3>Canvas</h3>
-    <Row label="Line spacing"><Segment value={prefs.lh} values={[[30,"Tight"],[34,"Normal"],[40,"Loose"]]} onChange={v=>setPref("lh",+v)}/></Row>
-    <Row label="Font"><Segment value={prefs.font} values={[["serif","Serif"],["sans","Sans"],["mono","Mono"]]} onChange={v=>setPref("font",v)}/></Row>
-    <Row label="Word count"><Switch value={prefs.count} onChange={v=>setPref("count",v)}/></Row>
-    <h3>Typing</h3>
-    <Row label="Autocomplete" sub="Suggests words and phrases"><Switch value={prefs.auto} onChange={v=>setPref("auto",v)}/></Row>
-    <Row label="Spell check"><Switch value={prefs.spell} onChange={v=>setPref("spell",v)}/></Row>
-    <Row label="Save draft automatically"><Switch value={prefs.draft} onChange={v=>setPref("draft",v)}/></Row>
-    <Row label="Effects" sub="Animations and haptics"><Switch value={prefs.fx} onChange={v=>setPref("fx",v)}/></Row>
-    <h3>General</h3>
-    <Row label="Theme"><Segment value={prefs.theme} values={[["system","Auto"],["light","Light"],["dark","Dark"]]} onChange={v=>setPref("theme",v)}/></Row>
-    <Row label="Writing size"><input type="range" min="16" max="26" value={prefs.size} onChange={e=>setPref("size",+e.target.value)}/></Row>
-    <Row label="Export" sub="Copy every saved prompt as text"><button className="outline-btn" onClick={async()=>{const txt=history.map(x=>x.text).join("\n\n");if(!txt)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(txt);notify("All prompts copied")}catch{notify("Copy failed")}}}>Copy all</button></Row>
-    <Row label="Delete all data" sub="Saved prompts and settings"><button className="outline-btn" onClick={()=>{setHistory([]);setPrefs(DEFAULTS);setPrompt("");notify("All data deleted")}}>Delete</button></Row>
+    <div className="settings-search-wrap"><span>⌕</span><input className="search settings-search" value={settingsSearch} onChange={e=>setSettingsSearch(e.target.value)} placeholder="Search settings"/></div>
+    {!settingsSection&&!settingsSearch&&<div className="settings-home">{[["canvas","Canvas","Writing surface, font, spacing, word count","write"],["typing","Typing","Autocomplete, spell check, drafts, effects","spark"],["appearance","Appearance","Theme and writing size","settings"],["data","Data","Export and delete your Prompt Habit data","save"]].map(([id,title,desc,icon])=><button key={id} className="settings-card" onClick={()=>setSettingsSection(id)}><span className="settings-card-icon"><Icon name={icon} size={18}/></span><span><b>{title}</b><small>{desc}</small></span><span className="settings-card-arrow">›</span></button>)}</div>}
+    {(settingsSection||settingsSearch)&&<div className="settings-detail">{settingsSection&&<button className="settings-back" onClick={()=>setSettingsSection("")}>‹ Settings</button>}
+      {(settingsSection==="canvas"||(!settingsSection&&settingsSearch&&"canvas font line spacing word count".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Canvas</h3><Row label="Line spacing"><Segment value={prefs.lh} values={[[30,"Tight"],[34,"Normal"],[40,"Loose"]]} onChange={v=>setPref("lh",+v)}/></Row><Row label="Font"><Segment value={prefs.font} values={[["serif","Serif"],["sans","Sans"],["mono","Mono"]]} onChange={v=>setPref("font",v)}/></Row><Row label="Word count"><Switch value={prefs.count} onChange={v=>setPref("count",v)}/></Row></div>}
+      {(settingsSection==="typing"||(!settingsSection&&settingsSearch&&"typing autocomplete spell check draft effects".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Typing</h3><Row label="Autocomplete" sub="Suggests words and phrases"><Switch value={prefs.auto} onChange={v=>setPref("auto",v)}/></Row><Row label="Spell check"><Switch value={prefs.spell} onChange={v=>setPref("spell",v)}/></Row><Row label="Save draft automatically"><Switch value={prefs.draft} onChange={v=>setPref("draft",v)}/></Row><Row label="Effects" sub="Animations and haptics"><Switch value={prefs.fx} onChange={v=>setPref("fx",v)}/></Row></div>}
+      {(settingsSection==="appearance"||(!settingsSection&&settingsSearch&&"appearance theme writing size".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Appearance</h3><Row label="Theme"><Segment value={prefs.theme} values={[["system","Auto"],["light","Light"],["dark","Dark"]]} onChange={v=>setPref("theme",v)}/></Row><Row label="Writing size"><input type="range" min="16" max="26" value={prefs.size} onChange={e=>setPref("size",+e.target.value)}/></Row></div>}
+      {(settingsSection==="data"||(!settingsSection&&settingsSearch&&"data export delete all".includes(settingsSearch.toLowerCase())))&&<div className="settings-group"><h3>Data</h3><Row label="Export" sub="Copy every saved prompt as text"><button className="outline-btn" onClick={async()=>{const txt=history.map(x=>x.text).join("\n\n");if(!txt)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(txt);notify("All prompts copied")}catch{notify("Copy failed")}}}>Copy all</button></Row><Row label="Delete all data" sub="Saved prompts and settings"><button className="outline-btn" onClick={()=>{setHistory([]);setPrefs(DEFAULTS);setPrompt("");notify("All data deleted")}}>Delete</button></Row></div>}
+      {!settingsSection&&settingsSearch&&!["canvas font line spacing word count","typing autocomplete spell check draft effects","appearance theme writing size","data export delete all"].some(x=>x.includes(settingsSearch.toLowerCase()))&&<div className="empty"><b>No settings found</b><span>Try canvas, typing, appearance, or data.</span></div>}
+    </div>}
    </div></section>}
   </main>
   <nav className="tabs" aria-label="Primary navigation">
@@ -275,7 +304,7 @@ function AppShell(){
   </nav>
   <UpgradeSheet open={sheetOpen} onClose={()=>setSheetOpen(false)} onApply={applyUpgrade} disabled={!t}/>
   {welcomeOpen&&<WelcomeSheet onContinue={()=>{setWelcomeOpen(false);setTimeout(()=>editor.current?.focus(),120)}}/>}
-  {publishOpen&&<div className="publish-layer" role="dialog" aria-modal="true"><button className="sheet-backdrop" aria-label="Close publish form" onClick={()=>setPublishOpen(false)}/><section className="publish-sheet"><div className="sheet-handle"/><div className="sheet-head"><div><span className="eyebrow">PUBLISH TEMPLATE</span><h2>Share your prompt</h2></div><button className="sheet-close" onClick={()=>setPublishOpen(false)}><Icon name="close" size={16}/></button></div><p className="publish-intro">Add a little context so people can discover and use your template.</p><label>Template name<input value={publish.name} onChange={e=>setPublish(p=>({...p,name:e.target.value}))} placeholder="e.g. Cinematic product image"/></label><label>Your name <small>optional</small><input value={publish.author} onChange={e=>setPublish(p=>({...p,author:e.target.value}))} placeholder="Your name"/></label><label>Use case<input value={publish.useCase} onChange={e=>setPublish(p=>({...p,useCase:e.target.value}))} placeholder="What is this prompt best for?"/></label><label>Best AI model <small>optional</small><input value={publish.model} onChange={e=>setPublish(p=>({...p,model:e.target.value}))} placeholder="e.g. GPT, Claude, Gemini, Midjourney"/></label><label>Tags <small>comma separated</small><input value={publish.tags} onChange={e=>setPublish(p=>({...p,tags:e.target.value}))} placeholder="image, product, cinematic, marketing"/></label><button className="pri publish-submit" onClick={submitTemplate}>Publish template</button></section></div>}
+  {modelPickerOpen&&<ModelPicker value={publish.model} onChange={v=>setPublish(p=>({...p,model:v}))} onClose={()=>setModelPickerOpen(false)}/>}\n  {publishOpen&&<div className="publish-layer" role="dialog" aria-modal="true"><button className="sheet-backdrop" aria-label="Close publish form" onClick={()=>setPublishOpen(false)}/><section className="publish-sheet"><div className="sheet-handle"/><div className="sheet-head"><div><span className="eyebrow">PUBLISH TEMPLATE</span><h2>Share your prompt</h2></div><button className="sheet-close" onClick={()=>setPublishOpen(false)}><Icon name="close" size={16}/></button></div><p className="publish-intro">Add a little context so people can discover and use your template.</p><label>Template name<input value={publish.name} onChange={e=>setPublish(p=>({...p,name:e.target.value}))} placeholder="e.g. Cinematic product image"/></label><label>Your name <small>optional</small><input value={publish.author} onChange={e=>setPublish(p=>({...p,author:e.target.value}))} placeholder="Your name"/></label><label>Use case<input value={publish.useCase} onChange={e=>setPublish(p=>({...p,useCase:e.target.value}))} placeholder="What is this prompt best for?"/></label><label>Best AI model <small>optional</small><button type="button" className="model-select" onClick={()=>setModelPickerOpen(true)}><span>{(()=>{const m=modelCatalog.find(x=>x.id===publish.model);return m?<><ModelMark model={m} size={28}/><span><b>{m.name}</b><small>{m.company}</small></span></>:<><span className="model-placeholder-mark">+</span><span><b>Choose a model</b><small>Search and select an AI model</small></span></>})()}</span><span className="model-chevron">⌄</span></button></label><label>Tags <small>comma separated</small><input value={publish.tags} onChange={e=>setPublish(p=>({...p,tags:e.target.value}))} placeholder="image, product, cinematic, marketing"/></label><button className="pri publish-submit" onClick={submitTemplate}>Publish template</button></section></div>}
   <div className={"toast "+(toast?"show":"")}>{toast}</div>
  </div>;
 }
