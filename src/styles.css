@@ -28,7 +28,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 .sheet{flex:1;min-height:0;position:relative;margin:0 12px;border-top:2px solid var(--line);overflow:hidden}
 .progress-line{position:absolute;top:-2px;left:0;height:2px;width:100%;background:var(--ink);transform:scaleX(.15);transform-origin:left;transition:transform .35s cubic-bezier(.3,.8,.3,1);z-index:2}
 .sheet:focus-within .progress-line{transform:scaleX(1)}
-textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;outline:0;background:linear-gradient(transparent calc(var(--lh) - 1px),var(--line) calc(var(--lh) - 1px)) 0 8px/100% var(--lh) local;color:var(--ink);font:400 var(--fs)/var(--lh) var(--wf);padding:8px 8px 28px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+textarea{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;outline:0;background:none;color:var(--ink);font:400 var(--fs)/var(--lh) var(--wf);padding:8px 8px 28px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 textarea::-webkit-scrollbar{width:7px}textarea::-webkit-scrollbar-track{background:transparent}textarea::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px;border:2px solid transparent;background-clip:padding-box}
 textarea::placeholder{color:var(--mute)}
 .mic{position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--ink);background:var(--bg);color:var(--ink);display:grid;place-items:center;padding:0;opacity:.8;transform:translate(4px,4px);transition:transform .14s ease,opacity .14s ease}
@@ -85,12 +85,10 @@ input[type=range]{width:130px;accent-color:var(--ink)}.outline-btn{border:1.5px 
  header{padding:12px 16px 8px;min-height:50px}.brand-title{font-size:18px}.meta{font-size:12px}
  .sheet{margin:0 12px}.dock{display:none}.tabs{display:none}
  .prompt-input{padding:8px 8px 72px;font-size:18px}
- .mobile-smart-nav{display:block;position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;width:82px;height:15px;padding:3px;border-radius:999px;background:#000;box-shadow:0 10px 36px rgba(0,0,0,.3);transition:width .25s cubic-bezier(.2,.8,.2,1),height .25s cubic-bezier(.2,.8,.2,1)}
- .mobile-smart-nav.open{width:min(90vw,430px);height:60px;padding:6px}
+ .mobile-smart-nav{display:block;position:fixed;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;width:min(92vw,430px);height:60px;padding:6px;border-radius:20px;background:#000;box-shadow:0 10px 36px rgba(0,0,0,.32)}
  .nav-handle{position:absolute;left:50%;top:5px;transform:translateX(-50%);width:32px;height:3px;border-radius:999px;background:#fff}
- .mobile-nav-tools{height:100%;display:flex;align-items:center;justify-content:space-evenly;opacity:0;pointer-events:none;transform:translateY(5px);transition:opacity .15s ease,transform .2s ease}
- .mobile-smart-nav.open .mobile-nav-tools{opacity:1;pointer-events:auto;transform:translateY(0)}
- .mobile-nav-tools button{min-width:66px;height:42px;border:0;background:transparent;color:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:5px;flex-direction:column;font-size:9px;font-weight:600;padding:3px 7px}
+ .mobile-nav-tools{height:100%;display:flex;align-items:center;justify-content:space-evenly;opacity:1;pointer-events:auto;transform:none}
+ .mobile-nav-tools button{min-width:58px;height:42px;border:0;background:transparent;color:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:5px;flex-direction:column;font-size:9px;font-weight:600;padding:3px 7px}
  .mobile-nav-tools button:active{background:#171717}.mobile-nav-tools button:disabled{opacity:.3}.mobile-improve{background:#fff!important;color:#000!important}
  .sug{padding-left:12px;padding-right:12px}.upgrade-sheet{width:calc(100vw - 18px);margin-bottom:calc(8px + env(safe-area-inset-bottom,0px));border-radius:19px}.upgrade-grid{grid-template-columns:repeat(2,1fr)}
  .upgrade-tile{padding:9px;min-height:54px}.upgrade-tile small{font-size:8px}
