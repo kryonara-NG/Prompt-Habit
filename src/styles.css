@@ -187,3 +187,144 @@ input[type=range]{width:130px;accent-color:var(--ink)}.outline-btn{border:1.5px 
  .welcome-start{height:54px;margin-top:18px;border-radius:15px}
 }
 @media(prefers-reduced-motion:reduce){.welcome-layer,.welcome-sheet{animation:none}}
+
+
+/* Motion system: layered, skewed, tactile interface motion */
+:root{--motion-ease:cubic-bezier(.16,1,.3,1);--motion-spring:cubic-bezier(.2,1.35,.35,1)}
+html{scroll-behavior:smooth}
+body{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+[data-fx=on] .screen{animation:screen-enter .48s var(--motion-ease) both}
+[data-fx=on] .screen .scroll{animation:content-settle .52s var(--motion-ease) both}
+[data-fx=on] .screen .scroll>*{animation:rise-skew .46s var(--motion-ease) both}
+[data-fx=on] .screen .scroll>*:nth-child(2){animation-delay:.035s}
+[data-fx=on] .screen .scroll>*:nth-child(3){animation-delay:.07s}
+[data-fx=on] .screen .scroll>*:nth-child(4){animation-delay:.105s}
+[data-fx=on] .screen .scroll>*:nth-child(5){animation-delay:.14s}
+[data-fx=on] .screen .scroll>*:nth-child(6){animation-delay:.175s}
+[data-fx=on] .screen .scroll>*:nth-child(7){animation-delay:.21s}
+[data-fx=on] .screen .scroll>*:nth-child(8){animation-delay:.245s}
+[data-fx=on] .screen .scroll>*:nth-child(9){animation-delay:.28s}
+
+[data-fx=on] .settings .row{animation:row-enter .42s var(--motion-ease) both}
+[data-fx=on] .settings .row:nth-of-type(2){animation-delay:.04s}
+[data-fx=on] .settings .row:nth-of-type(3){animation-delay:.08s}
+[data-fx=on] .settings .row:nth-of-type(4){animation-delay:.12s}
+[data-fx=on] .settings .row:nth-of-type(6){animation-delay:.16s}
+[data-fx=on] .settings .row:nth-of-type(7){animation-delay:.2s}
+[data-fx=on] .settings .row:nth-of-type(8){animation-delay:.24s}
+[data-fx=on] .settings .row:nth-of-type(10){animation-delay:.28s}
+[data-fx=on] .settings .row:nth-of-type(11){animation-delay:.32s}
+[data-fx=on] .settings .row:nth-of-type(12){animation-delay:.36s}
+
+[data-fx=on] .template-group{animation:group-enter .5s var(--motion-ease) both}
+[data-fx=on] .template-group:nth-child(2){animation-delay:.06s}
+[data-fx=on] .template-group:nth-child(3){animation-delay:.12s}
+[data-fx=on] .template-group:nth-child(4){animation-delay:.18s}
+[data-fx=on] .template-group:nth-child(5){animation-delay:.24s}
+[data-fx=on] .template-group:nth-child(6){animation-delay:.3s}
+[data-fx=on] .template-item{transform-origin:70% 50%;transition:transform .32s var(--motion-spring),box-shadow .32s var(--motion-ease),border-color .2s ease}
+[data-fx=on] .template-item:hover{transform:translate3d(5px,-2px,0) skewX(-1.2deg);box-shadow:0 14px 34px rgba(0,0,0,.09);border-color:var(--ink)}
+
+[data-fx=on] .item{animation:card-enter .44s var(--motion-ease) both;transition:transform .28s var(--motion-spring),box-shadow .28s ease}
+[data-fx=on] .item:hover{transform:translateX(4px) skewX(-.7deg);box-shadow:0 12px 28px rgba(0,0,0,.08)}
+[data-fx=on] .item:nth-child(2){animation-delay:.05s}
+[data-fx=on] .item:nth-child(3){animation-delay:.1s}
+[data-fx=on] .item:nth-child(4){animation-delay:.15s}
+[data-fx=on] .item:nth-child(5){animation-delay:.2s}
+
+[data-fx=on] header{animation:header-enter .5s var(--motion-ease) both}
+[data-fx=on] .brand-title{transition:transform .35s var(--motion-spring),letter-spacing .25s ease}
+[data-fx=on] .brand-title:hover{transform:skewX(-3deg) translateX(2px);letter-spacing:.01em}
+[data-fx=on] .more-button{transition:transform .25s var(--motion-spring),background .2s ease,border-color .2s ease}
+[data-fx=on] .more-button:hover{transform:rotate(7deg) scale(1.05)}
+[data-fx=on] .more-menu{transform-origin:100% 0;animation:menu-pop .28s var(--motion-spring) both}
+[data-fx=on] .more-menu button{transition:transform .22s var(--motion-spring),background .2s ease}
+[data-fx=on] .more-menu button:hover:not(:disabled){transform:translateX(3px)}
+
+[data-fx=on] .sheet{transition:border-color .3s ease}
+[data-fx=on] .sheet:focus-within{border-color:var(--ink)}
+[data-fx=on] textarea{caret-color:var(--ink);transition:font-size .3s var(--motion-spring),line-height .3s var(--motion-spring),padding .3s var(--motion-spring)}
+[data-fx=on] textarea:focus{animation:type-focus .9s ease-in-out infinite alternate}
+[data-fx=on] .progress-line{transition:transform .55s var(--motion-ease);box-shadow:0 0 12px rgba(0,0,0,.14)}
+[data-fx=on] .mic{transition:transform .28s var(--motion-spring),box-shadow .25s ease,background .2s ease}
+[data-fx=on] .mic:not(.on):hover{box-shadow:0 5px 18px rgba(0,0,0,.16)}
+[data-fx=on] .mic.on{animation:mic-float .9s ease-in-out infinite alternate}
+
+[data-fx=on] .sug button{transition:transform .25s var(--motion-spring),background .2s ease,color .2s ease}
+[data-fx=on] .sug button:hover{transform:translateY(-3px) skewX(-2deg);background:var(--ink);color:var(--bg)}
+[data-fx=on] .dock{animation:dock-enter .5s var(--motion-ease) .08s both}
+[data-fx=on] .dock .ic{transition:transform .25s var(--motion-spring),background .2s ease}
+[data-fx=on] .dock .ic:hover{transform:translateY(-3px) rotate(-4deg);background:var(--card)}
+[data-fx=on] .pri{transition:transform .25s var(--motion-spring),box-shadow .25s ease}
+[data-fx=on] .pri:hover{transform:translateY(-2px);box-shadow:0 9px 22px rgba(0,0,0,.16)}
+[data-fx=on] .pri:active{transform:translateY(1px) scale(.985)}
+
+[data-fx=on] .tabs{animation:tabs-enter .45s var(--motion-ease) .12s both}
+[data-fx=on] .tabs button{transition:transform .25s var(--motion-spring),color .2s ease}
+[data-fx=on] .tabs button:hover{transform:translateY(-2px)}
+[data-fx=on] .tabs button.selected svg{animation:nav-icon .45s var(--motion-spring) both}
+[data-fx=on] .tabs button.selected span{animation:label-arrive .3s var(--motion-ease) both}
+
+[data-fx=on] .search,.template-search{transition:transform .28s var(--motion-spring),box-shadow .25s ease,border-color .2s ease}
+[data-fx=on] .search:focus,.template-search:focus{transform:translateY(-2px) skewX(-.4deg);box-shadow:0 10px 25px rgba(0,0,0,.08);border-color:var(--ink)}
+[data-fx=on] .chip{transition:transform .22s var(--motion-spring),background .2s ease,color .2s ease}
+[data-fx=on] .chip:hover{transform:translateY(-2px) skewX(-1deg)}
+
+[data-fx=on] .switch{transition:transform .24s var(--motion-spring),background .2s ease}
+[data-fx=on] .switch:active{transform:scale(.9) rotate(-3deg)}
+[data-fx=on] .seg button{transition:background .25s var(--motion-ease),color .25s ease,transform .22s var(--motion-spring)}
+[data-fx=on] .seg button:active{transform:scale(.94)}
+[data-fx=on] input[type=range]{transition:filter .2s ease,transform .25s var(--motion-spring)}
+[data-fx=on] input[type=range]:active{transform:scaleY(1.15)}
+
+[data-fx=on] .sheet-layer,.publish-layer{animation:overlay-in .28s ease both}
+[data-fx=on] .sheet-backdrop,.publish-layer .sheet-backdrop{animation:backdrop-in .32s ease both}
+[data-fx=on] .upgrade-sheet,.publish-sheet{animation:modal-skew-in .48s var(--motion-spring) both}
+[data-fx=on] .upgrade-tile{animation:tile-enter .4s var(--motion-ease) both}
+[data-fx=on] .upgrade-tile:nth-child(2){animation-delay:.04s}
+[data-fx=on] .upgrade-tile:nth-child(3){animation-delay:.08s}
+[data-fx=on] .upgrade-tile:nth-child(4){animation-delay:.12s}
+[data-fx=on] .upgrade-tile:nth-child(5){animation-delay:.16s}
+[data-fx=on] .upgrade-tile:nth-child(6){animation-delay:.2s}
+[data-fx=on] .upgrade-tile:hover{transform:translateY(-3px) skewX(-1.5deg);box-shadow:0 12px 26px rgba(0,0,0,.1)}
+
+[data-fx=on] .publish-sheet label{animation:field-enter .38s var(--motion-ease) both}
+[data-fx=on] .publish-sheet label:nth-of-type(2){animation-delay:.05s}
+[data-fx=on] .publish-sheet label:nth-of-type(3){animation-delay:.1s}
+[data-fx=on] .publish-sheet label:nth-of-type(4){animation-delay:.15s}
+[data-fx=on] .publish-sheet label:nth-of-type(5){animation-delay:.2s}
+[data-fx=on] .publish-sheet input{transition:transform .24s var(--motion-spring),border-color .2s ease,box-shadow .25s ease}
+[data-fx=on] .publish-sheet input:focus{transform:translateY(-2px);border-color:var(--ink);box-shadow:0 8px 20px rgba(0,0,0,.08)}
+[data-fx=on] .recovery-banner{animation:recovery-motion .5s var(--motion-spring) both}
+[data-fx=on] .toast.show{animation:toast-motion .42s var(--motion-spring) both}
+
+@keyframes screen-enter{from{opacity:0;transform:translate3d(0,12px,0) skewY(1deg)}to{opacity:1;transform:none}}
+@keyframes content-settle{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+@keyframes rise-skew{from{opacity:0;transform:translate3d(0,16px,0) skewX(-2deg)}to{opacity:1;transform:none}}
+@keyframes row-enter{from{opacity:0;transform:translate3d(20px,0,0) skewX(-2deg)}to{opacity:1;transform:none}}
+@keyframes group-enter{from{opacity:0;transform:translate3d(0,20px,0) skewY(1deg)}to{opacity:1;transform:none}}
+@keyframes card-enter{from{opacity:0;transform:translate3d(24px,10px,0) skewX(-2deg)}to{opacity:1;transform:none}}
+@keyframes header-enter{from{opacity:0;transform:translateY(-10px) skewX(-2deg)}to{opacity:1;transform:none}}
+@keyframes dock-enter{from{opacity:0;transform:translateY(12px) skewX(-1.5deg)}to{opacity:1;transform:none}}
+@keyframes tabs-enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes nav-icon{from{opacity:0;transform:scale(.65) rotate(-12deg)}to{opacity:1;transform:none}}
+@keyframes label-arrive{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+@keyframes type-focus{from{filter:brightness(.99)}to{filter:brightness(1.015)}}
+@keyframes mic-float{from{box-shadow:0 3px 10px rgba(0,0,0,.12)}to{box-shadow:0 6px 18px rgba(0,0,0,.2)}}
+@keyframes overlay-in{from{opacity:0}to{opacity:1}}
+@keyframes backdrop-in{from{opacity:0;backdrop-filter:blur(0)}to{opacity:1;backdrop-filter:blur(4px)}}
+@keyframes modal-skew-in{from{opacity:0;transform:translate3d(0,34px,0) skewX(-2.5deg) scale(.97)}to{opacity:1;transform:none}}
+@keyframes tile-enter{from{opacity:0;transform:translate3d(0,12px,0) skewX(-2deg)}to{opacity:1;transform:none}}
+@keyframes field-enter{from{opacity:0;transform:translate3d(0,9px,0) skewX(-1deg)}to{opacity:1;transform:none}}
+@keyframes recovery-motion{from{opacity:0;transform:translateY(-8px) skewX(-2deg)}to{opacity:1;transform:none}}
+@keyframes toast-motion{from{opacity:0;transform:translate(-50%,14px) scale(.92) skewX(-2deg)}to{opacity:1;transform:translate(-50%,0) scale(1) skewX(0)}}
+
+@media(max-width:700px){
+ [data-fx=on] .screen .scroll>*{animation-duration:.4s}
+ [data-fx=on] .upgrade-sheet,[data-fx=on] .publish-sheet{width:min(100%,620px)}
+ [data-fx=on] .template-item:hover{transform:none;box-shadow:none}
+}
+
+@media(prefers-reduced-motion:reduce){
+ [data-fx=on] *,[data-fx=on] *::before,[data-fx=on] *::after{animation:none!important;transition:none!important}
+}
