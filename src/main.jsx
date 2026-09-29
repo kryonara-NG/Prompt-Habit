@@ -179,10 +179,7 @@ function AppShell(){
  const notify=m=>{setToast(m);clearTimeout(toastTimer.current);toastTimer.current=setTimeout(()=>setToast(""),1800);if(prefs.fx&&navigator.vibrate)navigator.vibrate(8)};
  const snapshot=()=>setUndo(v=>[...v,prompt].slice(-20));
  const updatePrompt=v=>setPrompt(v);
- const clean=v=>v.replace(/[ \t]+/g," ").replace(/
-{3,}/g,"
-
-").replace(/\s+([,.!?;:])/g,"$1").trim();
+ const clean=v=>v.replace(/[ \t]+/g," ").replace(/\n{3,}/g,"\n\n").replace(/\s+([,.!?;:])/g,"$1").trim();
 
  const adjust=async()=>{if(!t||adjusting)return;setAdjusting(true);snapshot();await new Promise(r=>setTimeout(r,prefs.fx?420:0));setPrompt("Improve and execute the following request clearly and precisely while preserving the user's intent:\n\n"+clean(prompt));setAdjusting(false);notify("Prompt adjusted")};
  const improve=()=>{if(!t)return;setSheetOpen(true)};
