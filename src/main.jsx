@@ -23,10 +23,33 @@ function Icon({name,size=22}){
  return <svg className="i" width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">{p[name]}</svg>;
 }
 
-function Welcome({onContinue}){
- const [text,setText]=useState("");
- useEffect(()=>{let i=0;const t=setInterval(()=>{i++;setText("Prompt Habit".slice(0,i));if(i>=12)clearInterval(t)},80);return()=>clearInterval(t)},[]);
- return <main className="welcome"><div className="welcome-content"><div className="brand-mark">✦</div><h1>{text}<span className="caret">|</span></h1><p>Write better prompts. One thought at a time.</p><button className="continue-button" onClick={onContinue}>Continue</button></div></main>;
+function WelcomeSheet({onContinue}){
+ return <div className="welcome-layer" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+  <button className="welcome-backdrop" aria-label="Welcome to Prompt Habit" tabIndex={-1}/>
+  <section className="welcome-sheet">
+   <div className="welcome-handle"/>
+   <div className="welcome-illustration" aria-hidden="true">
+    <svg viewBox="0 0 420 250" role="img">
+     <path d="M104 190c-23-8-37-27-34-48 3-24 24-39 49-37 10-27 38-43 67-34 18-27 58-30 80-4 27-8 57 6 66 32 30 0 53 21 53 47 0 28-24 49-54 49H104Z" fill="var(--card)"/>
+     <path d="M116 164c22-37 48-58 78-64 29-6 56 2 83 25" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+     <path d="M151 155c0-26 20-47 46-47s46 21 46 47" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+     <rect x="177" y="80" width="40" height="29" rx="8" fill="var(--bg)" stroke="var(--ink)" stroke-width="4"/>
+     <path d="M187 96h20M197 86v20" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+     <circle cx="142" cy="178" r="7" fill="var(--ink)"/>
+     <circle cx="276" cy="178" r="7" fill="var(--ink)"/>
+     <path d="M137 199c25 17 61 17 86 0" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+     <path d="M93 118l-18-18M321 112l18-19M108 77l-4-25M307 73l7-24" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+     <circle cx="72" cy="90" r="5" fill="var(--ink)"/><circle cx="343" cy="83" r="5" fill="var(--ink)"/>
+    </svg>
+   </div>
+   <div className="welcome-copy">
+    <span className="welcome-eyebrow">WELCOME TO PROMPT HABIT</span>
+    <h1 id="welcome-title">Turn your thoughts into better prompts.</h1>
+    <p>A clean space to write, improve, save, and reuse prompts — one idea at a time.</p>
+   </div>
+   <button className="welcome-start" onClick={onContinue}>Start using Prompt Habit <span aria-hidden="true">→</span></button>
+  </section>
+ </div>;
 }
 
 const templates=[
@@ -68,6 +91,7 @@ function UpgradeSheet({open,onClose,onApply,disabled}){
 function AppShell(){
  const [prompt,setPrompt]=useState("");
  const [screen,setScreen]=useState("write");
+ const [welcomeOpen,setWelcomeOpen]=useState(true);
  const [prefs,setPrefs]=useState(()=>{try{return {...DEFAULTS,...JSON.parse(localStorage.getItem(KEY)||"{}")}}catch{return {...DEFAULTS}}});
  const [history,setHistory]=useState(()=>{try{return JSON.parse(localStorage.getItem(KEY+":history")||"[]")}catch{return []}});
  const [publishedTemplates,setPublishedTemplates]=useState(()=>{try{return Object.keys(localStorage).filter(k=>k.startsWith(KEY+":published:")).map(k=>JSON.parse(localStorage.getItem(k))).filter(Boolean)}catch{return []}});\n const [recovery,setRecovery]=useState(()=>{try{return localStorage.getItem(KEY+":recovery")||""}catch{return ""}});
@@ -245,6 +269,7 @@ function AppShell(){
    <button className={screen==="settings"?"selected":""} onClick={()=>setScreen("settings")}><Icon name="settings" size={20}/><span>Settings</span></button>
   </nav>
   <UpgradeSheet open={sheetOpen} onClose={()=>setSheetOpen(false)} onApply={applyUpgrade} disabled={!t}/>
+  {welcomeOpen&&<WelcomeSheet onContinue={()=>{setWelcomeOpen(false);setTimeout(()=>editor.current?.focus(),120)}}/>}
   {publishOpen&&<div className="publish-layer" role="dialog" aria-modal="true"><button className="sheet-backdrop" aria-label="Close publish form" onClick={()=>setPublishOpen(false)}/><section className="publish-sheet"><div className="sheet-handle"/><div className="sheet-head"><div><span className="eyebrow">PUBLISH TEMPLATE</span><h2>Share your prompt</h2></div><button className="sheet-close" onClick={()=>setPublishOpen(false)}><Icon name="close" size={16}/></button></div><p className="publish-intro">Add a little context so people can discover and use your template.</p><label>Template name<input value={publish.name} onChange={e=>setPublish(p=>({...p,name:e.target.value}))} placeholder="e.g. Cinematic product image"/></label><label>Your name <small>optional</small><input value={publish.author} onChange={e=>setPublish(p=>({...p,author:e.target.value}))} placeholder="Your name"/></label><label>Use case<input value={publish.useCase} onChange={e=>setPublish(p=>({...p,useCase:e.target.value}))} placeholder="What is this prompt best for?"/></label><label>Best AI model <small>optional</small><input value={publish.model} onChange={e=>setPublish(p=>({...p,model:e.target.value}))} placeholder="e.g. GPT, Claude, Gemini, Midjourney"/></label><label>Tags <small>comma separated</small><input value={publish.tags} onChange={e=>setPublish(p=>({...p,tags:e.target.value}))} placeholder="image, product, cinematic, marketing"/></label><button className="pri publish-submit" onClick={submitTemplate}>Publish template</button></section></div>}
   <div className={"toast "+(toast?"show":"")}>{toast}</div>
  </div>;
@@ -254,5 +279,5 @@ function Row({label,sub,children}){return <div className="row"><div>{label}{sub&
 function Switch({value,onChange}){return <button className={"switch "+(value?"on":"")} role="switch" aria-checked={value} onClick={()=>onChange(!value)}><span/></button>}
 function Segment({value,values,onChange}){return <div className="seg">{values.map(([v,label])=><button key={v} className={String(value)===String(v)?"active":""} onClick={()=>onChange(v)}>{label}</button>)}</div>}
 
-function App(){const [started,setStarted]=useState(false);return started?<AppShell/>:<Welcome onContinue={()=>setStarted(true)}/>}
+function App(){return <AppShell/>}
 createRoot(document.getElementById("root")).render(<React.StrictMode><App/></React.StrictMode>);
