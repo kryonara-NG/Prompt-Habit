@@ -201,7 +201,7 @@ function AppShell(){
     <Row label="Writing size"><input type="range" min="16" max="26" value={prefs.size} onChange={e=>setPref("size",+e.target.value)}/></Row>
     <Row label="Export" sub="Copy every saved prompt as text"><button className="outline-btn" onClick={async()=>{const txt=history.map(x=>x.text).join("\n\n---\n\n");if(!txt)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(txt);notify("All prompts copied")}catch{notify("Copy failed")}}}>Copy all</button></Row>
     <Row label="Delete all data" sub="Saved prompts and settings"><button className="outline-btn" onClick={()=>{setHistory([]);setPrefs(DEFAULTS);setPrompt("");notify("All data deleted")}}>Delete</button></Row>
-   </div></section>
+   </div></section>}
   </main>
   <nav className="tabs" aria-label="Primary navigation">
    <button className={screen==="write"?"selected":""} onClick={()=>setScreen("write")}><Icon name="write" size={20}/><span>Write</span></button>
