@@ -138,7 +138,7 @@ function AppShell(){
   mark.textContent="\u200b";
   mirror.appendChild(mark);
   const lineHeight=parseFloat(cs.lineHeight)||34;
-  const x=mark.offsetLeft-el.scrollLeft+6;
+  const x=mark.offsetLeft-el.scrollLeft-30;
   const y=mark.offsetTop-el.scrollTop+(lineHeight-26)/2;
   const maxX=Math.max(4,el.clientWidth-30);
   const visibleY=Math.max(4,Math.min(y,el.clientHeight-30));
