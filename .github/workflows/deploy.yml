@@ -1,4 +1,4 @@
-name: Prompt Habit CI + Vercel
+name: Prompt Habit CI
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: prompt-habit-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -20,15 +20,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: ''
+
       - name: Install dependencies
         run: npm install
+
       - name: Build
         run: npm run build
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -36,30 +39,56 @@ jobs:
           path: dist
           if-no-files-found: error
 
-  deploy:
+  vercel-deploy:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
     env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: team_b3r4mfO4SelAAz8JZ0uezpom
       VERCEL_PROJECT_ID: prj_OI0TLd8qEpPdeiNpXPMPLZolv9M3
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
+      - name: Check Vercel deployment credentials
+        id: credentials
+        shell: bash
+        run: |
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.credentials.outputs.available == 'true'
         uses: actions/checkout@v4
+
       - name: Setup Node
+        if: steps.credentials.outputs.available == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Install dependencies
+        if: steps.credentials.outputs.available == 'true'
         run: npm install
+
       - name: Install Vercel CLI
+        if: steps.credentials.outputs.available == 'true'
         run: npm install --global vercel@latest
+
       - name: Pull Vercel production settings
+        if: steps.credentials.outputs.available == 'true'
         run: vercel pull --yes --environment=production --token "$VERCEL_TOKEN"
+
       - name: Build Vercel production artifact
+        if: steps.credentials.outputs.available == 'true'
         run: vercel build --prod --token "$VERCEL_TOKEN"
+
       - name: Deploy production artifact
+        if: steps.credentials.outputs.available == 'true'
         run: vercel deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+
+      - name: Deployment credential note
+        if: steps.credentials.outputs.available != 'true'
+        run: echo "Vercel CLI deployment is idle until VERCEL_TOKEN is configured."
