@@ -67,6 +67,7 @@ function AppShell(){
  const [sheetOpen,setSheetOpen]=useState(false);
  const [mobileOpen,setMobileOpen]=useState(false);
  const [adjusting,setAdjusting]=useState(false);
+ const [listening,setListening]=useState(false);
  const [toast,setToast]=useState("");
  const [search,setSearch]=useState("");
  const [filter,setFilter]=useState("all");
@@ -77,6 +78,28 @@ function AppShell(){
  useEffect(()=>{try{localStorage.setItem(KEY+":history",JSON.stringify(history))}catch{}},[history]);
  useEffect(()=>{if(prefs.draft){try{localStorage.setItem(KEY+":draft",prompt)}catch{}}},[prompt,prefs.draft]);
  useEffect(()=>{positionMic()},[prompt,prefs.size,prefs.lh,prefs.font]);
+ useEffect(()=>{
+  const syncViewport=()=>{
+   const vv=window.visualViewport;
+   if(vv){
+    const keyboard=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+    document.documentElement.style.setProperty("--keyboard-bottom",keyboard+"px");
+   }
+   positionMic();
+  };
+  const onSelection=()=>{if(document.activeElement===editor.current)positionMic()};
+  document.addEventListener("selectionchange",onSelection);
+  window.addEventListener("resize",syncViewport);
+  window.visualViewport?.addEventListener("resize",syncViewport);
+  window.visualViewport?.addEventListener("scroll",syncViewport);
+  syncViewport();
+  return()=>{
+   document.removeEventListener("selectionchange",onSelection);
+   window.removeEventListener("resize",syncViewport);
+   window.visualViewport?.removeEventListener("resize",syncViewport);
+   window.visualViewport?.removeEventListener("scroll",syncViewport);
+  };
+ },[]);
  useEffect(()=>{if(!prompt){try{const d=localStorage.getItem(KEY+":draft");if(d)setPrompt(d)}catch{}}},[]);
  useEffect(()=>{document.documentElement.dataset.theme=prefs.theme==="system"?"":prefs.theme;document.documentElement.style.setProperty("--fs",prefs.size+"px");document.documentElement.style.setProperty("--lh",prefs.lh+"px");document.documentElement.style.setProperty("--wf",FONTS[prefs.font]);document.documentElement.dataset.fx=prefs.fx?"on":"off"},[prefs]);
 
@@ -105,13 +128,54 @@ function AppShell(){
  const suggestions=useMemo(()=>{if(!prefs.auto||!prompt)return [];const last=prompt.slice(0,prompt.length).split(/\s+/).pop().toLowerCase();const words=["clearly","step by step","with examples","in a table","as a checklist","for a beginner","professionally","concisely","with constraints"];return words.filter(x=>x.startsWith(last)&&x!==last).slice(0,3)},[prompt,prefs.auto]);
  const filteredHistory=history.filter(x=>(filter==="all"||x.pinned)&&x.text.toLowerCase().includes(search.toLowerCase()));
 
- const positionMic=()=>{const el=editor.current,mic=micRef.current,mirror=mirrorRef.current;if(!el||!mic||!mirror)return;const cs=getComputedStyle(el);mirror.style.cssText="position:absolute;visibility:hidden;white-space:pre-wrap;overflow-wrap:break-word;box-sizing:border-box;left:0;top:0;width:"+el.clientWidth+"px;font:"+cs.font+";line-height:"+cs.lineHeight+";padding:"+cs.padding+";letter-spacing:"+cs.letterSpacing+";";mirror.textContent=el.value.slice(0,el.selectionStart);const mark=document.createElement("span");mark.textContent="\u200b";mirror.appendChild(mark);const x=mark.offsetLeft-el.scrollLeft+8;const y=mark.offsetTop-el.scrollTop+(parseFloat(cs.lineHeight)-24)/2+8;mic.style.transform="translate("+Math.max(4,Math.min(x,el.clientWidth-30))+"px,"+Math.max(4,y)+"px)"};
- const mic=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){notify("Voice input unsupported here");return}const rec=new SR();rec.lang=navigator.language||"en-US";rec.interimResults=false;rec.onresult=e=>{snapshot();setPrompt(v=>(v?v+" ":"")+e.results[0][0].transcript);notify("Voice added")};rec.onerror=()=>notify("Microphone unavailable");rec.onend=()=>positionMic();rec.start()};
+ const positionMic=()=>{
+  const el=editor.current,mic=micRef.current,mirror=mirrorRef.current;
+  if(!el||!mic||!mirror)return;
+  const cs=getComputedStyle(el);
+  mirror.style.cssText="position:absolute;visibility:hidden;pointer-events:none;white-space:pre-wrap;overflow-wrap:break-word;box-sizing:border-box;left:0;top:0;width:"+el.clientWidth+"px;font-family:"+cs.fontFamily+";font-size:"+cs.fontSize+";font-weight:"+cs.fontWeight+";line-height:"+cs.lineHeight+";padding:"+cs.padding+";letter-spacing:"+cs.letterSpacing+";";
+  mirror.textContent=el.value.slice(0,el.selectionStart);
+  const mark=document.createElement("span");
+  mark.textContent="\u200b";
+  mirror.appendChild(mark);
+  const lineHeight=parseFloat(cs.lineHeight)||34;
+  const x=mark.offsetLeft-el.scrollLeft+6;
+  const y=mark.offsetTop-el.scrollTop+(lineHeight-26)/2;
+  const maxX=Math.max(4,el.clientWidth-30);
+  const visibleY=Math.max(4,Math.min(y,el.clientHeight-30));
+  mic.style.transform="translate("+Math.max(4,Math.min(x,maxX))+"px,"+visibleY+"px)";
+ };
+ const mic=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){notify("Voice input unsupported here");return}
+  if(listening)return;
+  const rec=new SR();
+  rec.lang=navigator.language||"en-US";
+  rec.continuous=false;
+  rec.interimResults=true;
+  const start=editor.current?.selectionStart??prompt.length;
+  const end=editor.current?.selectionEnd??start;
+  let baseBefore=prompt.slice(0,start);
+  const baseAfter=prompt.slice(end);
+  snapshot();
+  setListening(true);
+  rec.onresult=e=>{
+   let spoken="";
+   for(let i=0;i<e.results.length;i++)spoken+=e.results[i][0].transcript;
+   const needsSpace=baseBefore.length>0&&!/[\\s]$/.test(baseBefore)?" ":"";
+   const next=baseBefore+needsSpace+spoken+baseAfter;
+   setPrompt(next);
+   const caret=(baseBefore+needsSpace+spoken).length;
+   requestAnimationFrame(()=>{editor.current?.focus();editor.current?.setSelectionRange(caret,caret);positionMic()});
+  };
+  rec.onerror=e=>{if(e.error!=="aborted"&&e.error!=="no-speech")notify("Microphone unavailable")};
+  rec.onend=()=>{setListening(false);requestAnimationFrame(positionMic)};
+  try{rec.start()}catch{setListening(false);notify("Could not start microphone")}
+ };
  return <div className={"app "+(screen==="write"?"writing":"")}>
   <header><button className="brand-title" onClick={()=>setScreen("write")}>Prompt Habit</button><span className="meta">{prefs.count?wordCount+(wordCount===1?" word":" words"):""}</span><button className="clear-link" onClick={clear} hidden={!t}>Clear</button></header>
   <main>
    {screen==="write"&&<section className="screen on write-screen">
-    <div className="sheet"><div className="progress-line"/><div ref={mirrorRef} aria-hidden="true"/><textarea ref={editor} value={prompt} onChange={e=>updatePrompt(e.target.value)} placeholder="Write your prompt here. Say who the AI should be, what it should do, and how the answer should look." spellCheck={prefs.spell}/><button ref={micRef} className="mic" onClick={mic} aria-label="Speak your prompt"><Icon name="mic" size={14}/></button></div>
+    <div className="sheet"><div className="progress-line"/><div ref={mirrorRef} aria-hidden="true"/><textarea ref={editor} value={prompt} onChange={e=>updatePrompt(e.target.value)} placeholder="Write your prompt here. Say who the AI should be, what it should do, and how the answer should look." spellCheck={prefs.spell}/><button ref={micRef} className={"mic "+(listening?"on":"")} onClick={mic} aria-label={listening?"Listening":"Speak your prompt"}><Icon name="mic" size={14}/></button></div>
     {suggestions.length>0&&<div className="sug">{suggestions.map(s=><button key={s} onClick={()=>{snapshot();setPrompt(v=>v+" "+s)}}>{s}</button>)}</div>}
     <div className="dock">
       <button className="ic" onClick={undoPrompt} disabled={!undo.length} aria-label="Undo"><Icon name="undo"/></button>
@@ -123,13 +187,28 @@ function AppShell(){
    {screen==="history"&&<section className="screen on"><div className="scroll"><input className="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search saved prompts"/><div className="chips"><button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button><button className={filter==="pin"?"chip active":"chip"} onClick={()=>setFilter("pin")}>Pinned</button></div>{filteredHistory.length?filteredHistory.map(x=><div className="item" key={x.id}><button className="item-body" onClick={()=>load(x.text)}><div className="item-title">{x.text}</div><div className="item-date">{x.pinned?"Pinned · ":""}{new Date(x.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div></button><button className="ic item-pin" onClick={()=>setHistory(h=>h.map(p=>p.id===x.id?{...p,pinned:!p.pinned}:p))}>✦</button></div>):<div className="empty"><b>{history.length?"No matches":"No saved prompts yet"}</b><span>{history.length?"Try a different search.":"Save a prompt from the Write screen."}</span></div>}</div></section>}
    {screen==="templates"&&<section className="screen on"><div className="scroll">{templates.map(([name,text])=><button className="template-item" key={name} onClick={()=>load(text)}><b>{name}</b><span>{text}</span></button>)}</div></section>}
    {screen==="settings"&&<section className="screen on"><div className="scroll settings">
-    <h3>Canvas</h3><Row label="Line spacing"><Segment value={prefs.lh} values={[[30,"Tight"],[34,"Normal"],[40,"Loose"]]} onChange={v=>setPref("lh",+v)}/></Row><Row label="Font"><Segment value={prefs.font} values={[["serif","Serif"],["sans","Sans"],["mono","Mono"]]} onChange={v=>setPref("font",v)}/></Row><Row label="Word count"><Switch value={prefs.count} onChange={v=>setPref("count",v)}/></Row>
-    <h3>Typing</h3><Row label="Autocomplete" sub="Suggests words and phrases"><Switch value={prefs.auto} onChange={v=>setPref("auto",v)}/></Row><Row label="Spell check"><Switch value={prefs.spell} onChange={v=>setPref("spell",v)}/></Row><Row label="Save draft automatically"><Switch value={prefs.draft} onChange={v=>setPref("draft",v)}/></Row><Row label="Effects" sub="Animations and haptics"><Switch value={prefs.fx} onChange={v=>setPref("fx",v)}/></Row>
-    <h3>General</h3><Row label="Theme"><Segment value={prefs.theme} values={[["system","Auto"],["light","Light"],["dark","Dark"]]} onChange={v=>setPref("theme",v)}/></Row><Row label="Writing size"><input type="range" min="16" max="26" value={prefs.size} onChange={e=>setPref("size",+e.target.value)}/></Row><Row label="Delete all data" sub="Saved prompts and settings"><button className="outline-btn" onClick={()=>{setHistory([]);setPrefs(DEFAULTS);setPrompt("");notify("All data deleted")}}>Delete</button></Row>
-   </div></section>}
+    <h3>Canvas</h3>
+    <Row label="Line spacing"><Segment value={prefs.lh} values={[[30,"Tight"],[34,"Normal"],[40,"Loose"]]} onChange={v=>setPref("lh",+v)}/></Row>
+    <Row label="Font"><Segment value={prefs.font} values={[["serif","Serif"],["sans","Sans"],["mono","Mono"]]} onChange={v=>setPref("font",v)}/></Row>
+    <Row label="Word count"><Switch value={prefs.count} onChange={v=>setPref("count",v)}/></Row>
+    <h3>Typing</h3>
+    <Row label="Autocomplete" sub="Suggests words and phrases"><Switch value={prefs.auto} onChange={v=>setPref("auto",v)}/></Row>
+    <Row label="Spell check"><Switch value={prefs.spell} onChange={v=>setPref("spell",v)}/></Row>
+    <Row label="Save draft automatically"><Switch value={prefs.draft} onChange={v=>setPref("draft",v)}/></Row>
+    <Row label="Effects" sub="Animations and haptics"><Switch value={prefs.fx} onChange={v=>setPref("fx",v)}/></Row>
+    <h3>General</h3>
+    <Row label="Theme"><Segment value={prefs.theme} values={[["system","Auto"],["light","Light"],["dark","Dark"]]} onChange={v=>setPref("theme",v)}/></Row>
+    <Row label="Writing size"><input type="range" min="16" max="26" value={prefs.size} onChange={e=>setPref("size",+e.target.value)}/></Row>
+    <Row label="Export" sub="Copy every saved prompt as text"><button className="outline-btn" onClick={async()=>{const txt=history.map(x=>x.text).join("\n\n---\n\n");if(!txt)return notify("Nothing to export yet");try{await navigator.clipboard.writeText(txt);notify("All prompts copied")}catch{notify("Copy failed")}}}>Copy all</button></Row>
+    <Row label="Delete all data" sub="Saved prompts and settings"><button className="outline-btn" onClick={()=>{setHistory([]);setPrefs(DEFAULTS);setPrompt("");notify("All data deleted")}}>Delete</button></Row>
+   </div></section>
   </main>
-  <nav className="tabs"><button className={screen==="write"?"selected":""} onClick={()=>setScreen("write")}><Icon name="write" size={20}/>Write</button><button className={screen==="history"?"selected":""} onClick={()=>setScreen("history")}><Icon name="history" size={20}/>History</button><button className={screen==="templates"?"selected":""} onClick={()=>setScreen("templates")}><Icon name="template" size={20}/>Templates</button><button className={screen==="settings"?"selected":""} onClick={()=>setScreen("settings")}><Icon name="settings" size={20}/>Settings</button></nav>
-  <div className={"mobile-smart-nav "+(mobileOpen?"open":"")}><span className="nav-handle"/><div className="mobile-nav-tools"><button onClick={undoPrompt} disabled={!undo.length}><Icon name="undo" size={17}/><span>Undo</span></button><button onClick={copy} disabled={!t}><Icon name="copy" size={17}/><span>Copy</span></button><button onClick={save} disabled={!t}><Icon name="save" size={17}/><span>Save</span></button><button onClick={()=>setScreen("settings")}><Icon name="settings" size={17}/><span>Settings</span></button><button className="mobile-improve" onClick={improve} disabled={!t}><Icon name="spark" size={17}/><span>Improve</span></button></div></div>
+  <nav className="tabs" aria-label="Primary navigation">
+   <button className={screen==="write"?"selected":""} onClick={()=>setScreen("write")}><Icon name="write" size={20}/><span>Write</span></button>
+   <button className={screen==="history"?"selected":""} onClick={()=>setScreen("history")}><Icon name="history" size={20}/><span>History</span></button>
+   <button className={screen==="templates"?"selected":""} onClick={()=>setScreen("templates")}><Icon name="template" size={20}/><span>Templates</span></button>
+   <button className={screen==="settings"?"selected":""} onClick={()=>setScreen("settings")}><Icon name="settings" size={20}/><span>Settings</span></button>
+  </nav>
   <UpgradeSheet open={sheetOpen} onClose={()=>setSheetOpen(false)} onApply={applyUpgrade} disabled={!t}/>
   <div className={"toast "+(toast?"show":"")}>{toast}</div>
  </div>;
