@@ -10,14 +10,23 @@ function Welcome({onContinue}){
  return <main className="welcome"><div className="welcome-content"><div className="brand-mark">✦</div><h1>{text}<span className={cursor?"caret":"caret hidden"}>|</span></h1><p>Write better prompts. One thought at a time.</p><button className="continue-button" onClick={onContinue}>Continue</button></div></main>;
 }
 
+function CopyIcon(){
+ return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>;
+}
+
 function Editor(){
- const [prompt,setPrompt]=useState(""); const [dark,setDark]=useState(false); const [adjusting,setAdjusting]=useState(false); const editor=useRef(null);
+ const [prompt,setPrompt]=useState(""); const [adjusting,setAdjusting]=useState(false); const editor=useRef(null);
  useEffect(()=>editor.current?.focus(),[]);
  const adjust=async()=>{if(!prompt.trim()||adjusting)return;setAdjusting(true);await new Promise(r=>setTimeout(r,450));const cleaned=prompt.replace(/\s+/g," ").replace(/\s+([,.!?;:])/g,"$1").trim();setPrompt(cleaned ? "Improve and execute the following request clearly and precisely while preserving the user's intent:\n\n"+cleaned : "");setAdjusting(false);requestAnimationFrame(()=>editor.current?.focus())};
  const copy=async()=>{if(!prompt)return;try{await navigator.clipboard.writeText(prompt)}catch{const a=document.createElement("textarea");a.value=prompt;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}};
- return <main className={dark?"editor-shell dark":"editor-shell"}>
-  <div className="browser-bar"><div className="traffic-lights"><i/><i/><i/></div><div className="browser-tab"><span>✦</span> Prompt Habit</div><div className="new-tab">+</div><div className="address-bar">prompthabit.app</div><button className="theme-button" onClick={()=>setDark(v=>!v)}>{dark?"☀":"☾"}</button></div>
-  <section className="canvas"><div className="editor-actions"><button className="adjust-button" onClick={adjust} disabled={!prompt.trim()||adjusting}><span>✦</span>{adjusting?"Adjusting…":"Adjust"}</button><button className="copy-button" onClick={copy} disabled={!prompt.trim()} aria-label="Copy prompt">⧉</button></div><textarea ref={editor} className="prompt-input" value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Type your prompt here..." spellCheck="true"/></section>
+ return <main className="editor-shell">
+  <section className="canvas">
+   <div className="editor-actions">
+    <button className="adjust-button" onClick={adjust} disabled={!prompt.trim()||adjusting}><span>✦</span>{adjusting?"Adjusting…":"Adjust"}</button>
+    <button className="copy-button" onClick={copy} disabled={!prompt.trim()} aria-label="Copy prompt" title="Copy prompt"><CopyIcon/></button>
+   </div>
+   <textarea ref={editor} className="prompt-input" value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="Type your prompt here..." spellCheck="true"/>
+  </section>
   <footer className="app-footer">Crafted by Kryonara · For prompt engineers, vibe coders & builders</footer>
  </main>;
 }
