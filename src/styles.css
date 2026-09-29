@@ -93,7 +93,7 @@ textarea::placeholder{color:var(--mute)}
 .template-item-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px}
 .template-item b{display:block;font:500 18px/1.2 var(--wf)}
 .template-item span{display:block;color:var(--mute);font:400 15px/1.45 var(--wf)}
-.template-type{flex:none!important;border:1px solid var(--line);border-radius:999px;padding:3px 7px;font:500 9px/1 "IBM Plex Sans",sans-serif!important;text-transform:uppercase;letter-spacing:.08em;color:var(--ink)!important}
+.template-meta{display:block!important;margin-top:8px;color:var(--mute);font:400 11px/1.35 "IBM Plex Sans",sans-serif!important}.template-type{flex:none!important;border:1px solid var(--line);border-radius:999px;padding:3px 7px;font:500 9px/1 "IBM Plex Sans",sans-serif!important;text-transform:uppercase;letter-spacing:.08em;color:var(--ink)!important}
 
 .settings h3{margin:22px 0 0;font:600 13px/1 "IBM Plex Sans",sans-serif;color:var(--mute)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
