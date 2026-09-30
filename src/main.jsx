@@ -48,13 +48,19 @@ function normalizeModelCatalog(data){
 }
 
 const PROVIDER_DOMAINS={openai:"openai.com",anthropic:"anthropic.com",google:"google.com",xai:"x.ai",meta:"meta.com",mistral:"mistral.ai",deepseek:"deepseek.com",qwen:"qwen.ai",cohere:"cohere.com",midjourney:"midjourney.com",ideogram:"ideogram.ai",runway:"runwayml.com",perplexity:"perplexity.ai",groq:"groq.com",huggingface:"huggingface.co",togetherai:"together.ai",fireworks:"fireworks.ai",replicate:"replicate.com",amazon:"amazon.com",nvidia:"nvidia.com",microsoft:"microsoft.com",ibm:"ibm.com",moonshotai:"moonshot.ai",zai:"z.ai",minimax:"minimax.io",bytedance:"bytedance.com",elevenlabs:"elevenlabs.io",stability:"stability.ai",blackforestlabs:"blackforestlabs.ai",ai21:"ai21.com",writer:"writer.com",reka:"reka.ai",suno:"suno.com",luma:"lumalabs.ai"};
-const BOOTSTRAP_LOGOS={openai:"openai",anthropic:"anthropic",google:"google",meta:"meta",microsoft:"microsoft",amazon:"amazon",nvidia:"nvidia",ibm:"building",github:"github",xai:"twitter-x",qwen:"alipay",cohere:"person-badge",mistral:"stars",deepseek:"cpu",perplexity:"search",groq:"lightning-charge",huggingface:"box-seam",replicate:"layers",runway:"film",midjourney:"magic",ideogram:"image",stability:"image",elevenlabs:"soundwave",suno:"music-note",luma:"camera-video"};
 function ProviderFavicon({model,size=32}){
  const provider=model?.provider||model?.providerId||"openai";
  const domain=model?.domain||PROVIDER_DOMAINS[provider];
- const src=model?.favicon||("https://www.google.com/s2/favicons?domain="+encodeURIComponent(domain||"models.dev")+"&sz=64");
- const icon=BOOTSTRAP_LOGOS[provider]||"building";
- return <span className="model-logo-shell" style={{width:size,height:size}} title={model?.company||provider}><i className={"bi bi-"+icon} aria-hidden="true"/><img className="model-favicon model-logo-fallback" src={src} alt="" width={size} height={size} loading="lazy" referrerPolicy="no-referrer" onLoad={e=>e.currentTarget.classList.add("logo-loaded")} onError={e=>{e.currentTarget.style.display="none"}}/></span>;
+ const primary=model?.logoUrl||MODEL_LOGO_URL(provider);
+ const fallback=domain?"https://www.google.com/s2/favicons?domain="+encodeURIComponent(domain)+"&sz=64":"";
+ const initials=(model?.company||provider||"AI").replace(/[^a-z0-9]/gi,"").slice(0,2).toUpperCase();
+ const [src,setSrc]=useState(primary);
+ const [failed,setFailed]=useState(false);
+ useEffect(()=>{setSrc(primary);setFailed(false)},[primary]);
+ return <span className="model-logo-shell" style={{width:size,height:size}} title={model?.company||provider}>
+   {!failed&&<img className="model-favicon" src={src} alt="" width={size} height={size} loading="lazy" referrerPolicy="no-referrer" onError={()=>{if(fallback&&src!==fallback)setSrc(fallback);else setFailed(true)}}/>}
+   {failed&&<span className="model-logo-initials" aria-hidden="true">{initials}</span>}
+ </span>;
 }
 function ModelMark({model,size=32}){ const m=model||fallbackModels[0]; return <span className="model-mark" style={{width:size,height:size}} aria-hidden="true"><ProviderFavicon model={m} size={size}/></span>; }
 
@@ -66,18 +72,18 @@ function ModelPicker({value,onChange,onClose}){
  const [error,setError]=useState("");
  useEffect(()=>{
   let cancelled=false;
-  const cached=sessionStorage.getItem("prompt-habit:model-catalog");
+  const cached=localStorage.getItem("prompt-habit:model-catalog");
   if(cached){try{const parsed=JSON.parse(cached);if(Array.isArray(parsed)&&parsed.length)setCatalog(parsed)}catch{}}
   fetch(MODEL_CATALOG_URL,{headers:{Accept:"application/json"}})
    .then(r=>{if(!r.ok)throw new Error("catalog request failed");return r.json()})
-   .then(data=>{if(cancelled)return;const next=normalizeModelCatalog(data);if(next.length){setCatalog(next);try{sessionStorage.setItem("prompt-habit:model-catalog",JSON.stringify(next))}catch{}}else throw new Error("empty catalog")})
+   .then(data=>{if(cancelled)return;const next=normalizeModelCatalog(data);if(next.length){setCatalog(next);try{localStorage.setItem("prompt-habit:model-catalog",JSON.stringify(next))}catch{}}else throw new Error("empty catalog")})
    .catch(()=>{if(!cancelled)setError("Live catalog unavailable — showing cached models.")})
    .finally(()=>{if(!cancelled)setLoading(false)});
   return()=>{cancelled=true};
  },[]);
  useEffect(()=>{setSelected(Array.isArray(value)?value.map(x=>typeof x==="string"?x:x?.id).filter(Boolean):[])},[value]);
  const q=query.trim().toLowerCase();
- const results=catalog.filter(m=>(m.name+" "+m.company+" "+m.id).toLowerCase().includes(q)).slice(0,300);
+ const results=catalog.filter(m=>(m.name+" "+m.company+" "+m.id+" "+(m.family||"")).toLowerCase().includes(q)).slice(0,500);
  const toggle=id=>{
   setSelected(current=>{
    if(current.includes(id))return current.filter(x=>x!==id);
