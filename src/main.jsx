@@ -211,7 +211,8 @@ function AppShell(){
  const [adjusting,setAdjusting]=useState(false);
  const [listening,setListening]=useState(false);
  const [toast,setToast]=useState("");
- const [search,setSearch]=useState("");
+ const [historySearch,setHistorySearch]=useState("");
+ const [templateSearch,setTemplateSearch]=useState("");
  const [filter,setFilter]=useState("all");
  const editor=useRef(null),micRef=useRef(null),mirrorRef=useRef(null),toastTimer=useRef(null);
  const t=prompt.trim(), wordCount=t?t.split(/\s+/).length:0;
@@ -277,7 +278,7 @@ function AppShell(){
  const allTemplates=[...publishedTemplates,...templates];
  const templateCategories=[...new Set(allTemplates.map(x=>x.category))];
  const templateResults=allTemplates.filter(x=>{
-  const q=search.trim().toLowerCase();
+  const q=templateSearch.trim().toLowerCase();
   const matchesCategory=filter==="all"||x.category===filter;
   const haystack=[x.name,x.category,...x.tags,x.text].join(" ").toLowerCase();
   return matchesCategory&&(!q||haystack.includes(q));
@@ -285,7 +286,7 @@ function AppShell(){
  const groupedTemplates=templateCategories
   .map(category=>({category,items:templateResults.filter(x=>x.category===category)}))
   .filter(group=>group.items.length);
- const filteredHistory=history.filter(x=>(filter==="all"||x.pinned)&&x.text.toLowerCase().includes(search.toLowerCase()));
+ const filteredHistory=history.filter(x=>(filter==="all"||x.pinned)&&x.text.toLowerCase().includes(historySearch.toLowerCase()));
 
  const positionMic=()=>{
   const el=editor.current,mic=micRef.current,mirror=mirrorRef.current;
@@ -344,9 +345,9 @@ function AppShell(){
       <button className={"pri "+(adjusting?"busy":"")} onClick={adjust} disabled={!t||adjusting}><Icon name="spark" size={18}/>{adjusting?"Adjusting":"Improve"}</button>
     </div>
    </section>}
-   {screen==="history"&&<section className="screen on"><div className="scroll"><div className="search-wrap"><span aria-hidden="true">⌕</span><input type="search" className="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search saved prompts"/>{search&&<button type="button" className="search-clear" onClick={()=>setSearch("")} aria-label="Clear search">×</button>}</div><div className="chips"><button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button><button className={filter==="pin"?"chip active":"chip"} onClick={()=>setFilter("pin")}>Pinned</button></div>{filteredHistory.length?filteredHistory.map(x=><div className="item" key={x.id}><button className="item-body" onClick={()=>load(x.text)}><div className="item-title">{x.text}</div><div className="item-date">{x.pinned?"Pinned, ":""}{new Date(x.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div></button><button className="ic item-pin" onClick={()=>setHistory(h=>h.map(p=>p.id===x.id?{...p,pinned:!p.pinned}:p))}>✦</button></div>):<div className="empty"><b>{history.length?"No matches":"No saved prompts yet"}</b><span>{history.length?"Try a different search.":"Save a prompt from the Write screen."}</span></div>}</div></section>}
+   {screen==="history"&&<section className="screen on"><div className="scroll"><div className="search-wrap"><span aria-hidden="true">⌕</span><input type="search" className="search" value={historySearch} onChange={e=>setHistorySearch(e.target.value)} placeholder="Search saved prompts"/>{historySearch&&<button type="button" className="search-clear" onClick={()=>setHistorySearch("")} aria-label="Clear search">×</button>}</div><div className="chips"><button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button><button className={filter==="pin"?"chip active":"chip"} onClick={()=>setFilter("pin")}>Pinned</button></div>{filteredHistory.length?filteredHistory.map(x=><div className="item" key={x.id}><button className="item-body" onClick={()=>load(x.text)}><div className="item-title">{x.text}</div><div className="item-date">{x.pinned?"Pinned, ":""}{new Date(x.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div></button><button className="ic item-pin" onClick={()=>setHistory(h=>h.map(p=>p.id===x.id?{...p,pinned:!p.pinned}:p))}>✦</button></div>):<div className="empty"><b>{history.length?"No matches":"No saved prompts yet"}</b><span>{history.length?"Try a different search.":"Save a prompt from the Write screen."}</span></div>}</div></section>}
    {screen==="templates"&&<section className="screen on"><div className="scroll template-screen">
-    <div className="search-wrap template-search-wrap"><span className="template-search-icon" aria-hidden="true">⌕</span><input type="search" className="search template-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by task: image, video, code, research..."/>{search&&<button type="button" className="search-clear template-search-clear" onClick={()=>setSearch("")} aria-label="Clear template search">×</button>}</div>
+    <div className="search-wrap template-search-wrap"><span className="template-search-icon" aria-hidden="true">⌕</span><input type="search" className="search template-search" value={templateSearch} onChange={e=>setTemplateSearch(e.target.value)} placeholder="Search by task: image, video, code, research..."/>{templateSearch&&<button type="button" className="search-clear template-search-clear" onClick={()=>setTemplateSearch("")} aria-label="Clear template search">×</button>}</div>
     <div className="template-filters" aria-label="Template categories">
       <button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button>
       {templateCategories.map(category=><button key={category} className={filter===category?"chip active":"chip"} onClick={()=>setFilter(category)}>{category}</button>)}
