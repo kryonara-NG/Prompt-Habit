@@ -1,6 +1,8 @@
 import React,{useEffect,useMemo,useRef,useState} from "react";
 import {createRoot} from "react-dom/client";
 import "./styles.css";
+import "./tokens.css";
+import { ContextEnginePanel } from "./ContextEnginePanel.jsx";
 
 const KEY="prompt-habit:v3";
 const DEFAULTS={theme:"system",size:20,lines:false,lh:34,font:"serif",count:true,auto:true,spell:true,draft:true,fx:true};
@@ -174,13 +176,16 @@ const upgradeTools=[
 ];
 
 function UpgradeSheet({open,onClose,onApply,disabled}){
+ const [contextOpen,setContextOpen]=useState(false),[contextText,setContextText]=useState("");
  if(!open)return null;
  return <div className="sheet-layer" role="dialog" aria-modal="true">
   <button className="sheet-backdrop" aria-label="Close" onClick={onClose}/>
   <section className="upgrade-sheet">
    <div className="sheet-handle"/>
    <div className="sheet-head"><div><span className="eyebrow">PROMPT LAB</span><h2>Upgrade your prompt</h2></div><button className="sheet-close" onClick={onClose}><Icon name="close" size={16}/></button></div>
-   <div className="upgrade-grid">{upgradeTools.map(([id,title,desc])=><button className="upgrade-tile" key={id} disabled={disabled} onClick={()=>onApply(id)}><span className="upgrade-icon"><Icon name="spark" size={15}/></span><span><b>{title}</b><small>{desc}</small></span></button>)}</div>
+   <div className="context-engine-toggle"><div><b>Context engine</b><small>Attach text, files, or repository snippets before upgrading.</small></div><button type="button" className={"outline-btn context-toggle-button "+(contextOpen?"active":"")} onClick={()=>setContextOpen(v=>!v)} aria-expanded={contextOpen}>{contextOpen?"Hide":"Add context"}</button></div>
+   {contextOpen&&<ContextEnginePanel onContextChange={setContextText}/>}
+   <div className="upgrade-grid">{upgradeTools.map(([id,title,desc])=><button className="upgrade-tile" key={id} disabled={disabled} onClick={()=>onApply(id,contextText)}><span className="upgrade-icon"><Icon name="spark" size={15}/></span><span><b>{title}</b><small>{desc}</small></span></button>)}</div>
   </section>
  </div>;
 }
@@ -246,14 +251,14 @@ function AppShell(){
 
  const adjust=async()=>{if(!t||adjusting)return;setAdjusting(true);snapshot();await new Promise(r=>setTimeout(r,prefs.fx?420:0));setPrompt("Improve and execute the following request clearly and precisely while preserving the user's intent:\n\n"+clean(prompt));setAdjusting(false);notify("Prompt adjusted")};
  const improve=()=>{if(!t)return;setSheetOpen(true)};
- const applyUpgrade=id=>{const additions={
+ const applyUpgrade=(id,contextText="")=>{const additions={
   clarify:"Clarify the objective, audience, desired outcome, and any ambiguity before answering.",
   structure:"Organize the response into clear steps with relevant context, requirements, and an explicit expected output.",
   expert:"Approach this as a senior expert. State important assumptions and apply rigorous domain reasoning where useful.",
   constraints:"Respect these constraints: preserve my intent, avoid unnecessary assumptions, be actionable, and flag missing information.",
   concise:"Be concise. Remove repetition and filler while preserving every essential requirement and detail.",
   polish:"Polish the wording for precision, clarity, grammar, and natural flow without changing my intent."
- };snapshot();setPrompt(clean(prompt)+"\n\n"+additions[id]);setSheetOpen(false);setMobileOpen(false);notify("Prompt upgraded");setTimeout(()=>editor.current?.focus(),0)};
+ };snapshot();setPrompt(clean(prompt)+"\n\n"+additions[id]+(contextText?"\n\nContext to use:\n"+contextText:""));setSheetOpen(false);setMobileOpen(false);notify("Prompt upgraded");setTimeout(()=>editor.current?.focus(),0)};
  const copy=async()=>{if(!t)return;try{await navigator.clipboard.writeText(prompt)}catch{const a=document.createElement("textarea");a.value=prompt;document.body.appendChild(a);a.select();document.execCommand("copy");a.remove()}notify("Copied")};
  const save=()=>{if(!t)return;const item={id:Date.now(),text:prompt,ts:Date.now(),pinned:false};setHistory(h=>[item,...h.filter(x=>x.text!==prompt)].slice(0,100));notify("Saved to history")};
  const undoPrompt=()=>{if(!undo.length)return;setPrompt(undo[undo.length-1]);setUndo(v=>v.slice(0,-1));notify("Restored")};
