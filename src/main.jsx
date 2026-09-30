@@ -48,13 +48,19 @@ function normalizeModelCatalog(data){
 }
 
 const PROVIDER_DOMAINS={openai:"openai.com",anthropic:"anthropic.com",google:"google.com",xai:"x.ai",meta:"meta.com",mistral:"mistral.ai",deepseek:"deepseek.com",qwen:"qwen.ai",cohere:"cohere.com",midjourney:"midjourney.com",ideogram:"ideogram.ai",runway:"runwayml.com",perplexity:"perplexity.ai",groq:"groq.com",huggingface:"huggingface.co",togetherai:"together.ai",fireworks:"fireworks.ai",replicate:"replicate.com",amazon:"amazon.com",nvidia:"nvidia.com",microsoft:"microsoft.com",ibm:"ibm.com",moonshotai:"moonshot.ai",zai:"z.ai",minimax:"minimax.io",bytedance:"bytedance.com",elevenlabs:"elevenlabs.io",stability:"stability.ai",blackforestlabs:"blackforestlabs.ai",ai21:"ai21.com",writer:"writer.com",reka:"reka.ai",suno:"suno.com",luma:"lumalabs.ai"};
-const BOOTSTRAP_LOGOS={openai:"openai",anthropic:"anthropic",google:"google",meta:"meta",microsoft:"microsoft",amazon:"amazon",nvidia:"nvidia",ibm:"building",github:"github",xai:"twitter-x",qwen:"alipay",cohere:"person-badge",mistral:"stars",deepseek:"cpu",perplexity:"search",groq:"lightning-charge",huggingface:"box-seam",replicate:"layers",runway:"film",midjourney:"magic",ideogram:"image",stability:"image",elevenlabs:"soundwave",suno:"music-note",luma:"camera-video"};
 function ProviderFavicon({model,size=32}){
  const provider=model?.provider||model?.providerId||"openai";
  const domain=model?.domain||PROVIDER_DOMAINS[provider];
- const src=model?.favicon||("https://www.google.com/s2/favicons?domain="+encodeURIComponent(domain||"models.dev")+"&sz=64");
- const icon=BOOTSTRAP_LOGOS[provider]||"building";
- return <span className="model-logo-shell" style={{width:size,height:size}} title={model?.company||provider}><i className={"bi bi-"+icon} aria-hidden="true"/><img className="model-favicon model-logo-fallback" src={src} alt="" width={size} height={size} loading="lazy" referrerPolicy="no-referrer" onLoad={e=>e.currentTarget.classList.add("logo-loaded")} onError={e=>{e.currentTarget.style.display="none"}}/></span>;
+ const primary=model?.logoUrl||MODEL_LOGO_URL(provider);
+ const fallback=domain?"https://www.google.com/s2/favicons?domain="+encodeURIComponent(domain)+"&sz=64":"";
+ const initials=(model?.company||provider||"AI").replace(/[^a-z0-9]/gi,"").slice(0,2).toUpperCase();
+ const [src,setSrc]=useState(primary);
+ const [failed,setFailed]=useState(false);
+ useEffect(()=>{setSrc(primary);setFailed(false)},[primary]);
+ return <span className="model-logo-shell" style={{width:size,height:size}} title={model?.company||provider}>
+   {!failed&&<img className="model-favicon" src={src} alt="" width={size} height={size} loading="lazy" referrerPolicy="no-referrer" onError={()=>{if(fallback&&src!==fallback)setSrc(fallback);else setFailed(true)}}/>}
+   {failed&&<span className="model-logo-initials" aria-hidden="true">{initials}</span>}
+ </span>;
 }
 function ModelMark({model,size=32}){ const m=model||fallbackModels[0]; return <span className="model-mark" style={{width:size,height:size}} aria-hidden="true"><ProviderFavicon model={m} size={size}/></span>; }
 
@@ -66,18 +72,18 @@ function ModelPicker({value,onChange,onClose}){
  const [error,setError]=useState("");
  useEffect(()=>{
   let cancelled=false;
-  const cached=sessionStorage.getItem("prompt-habit:model-catalog");
+  const cached=localStorage.getItem("prompt-habit:model-catalog");
   if(cached){try{const parsed=JSON.parse(cached);if(Array.isArray(parsed)&&parsed.length)setCatalog(parsed)}catch{}}
   fetch(MODEL_CATALOG_URL,{headers:{Accept:"application/json"}})
    .then(r=>{if(!r.ok)throw new Error("catalog request failed");return r.json()})
-   .then(data=>{if(cancelled)return;const next=normalizeModelCatalog(data);if(next.length){setCatalog(next);try{sessionStorage.setItem("prompt-habit:model-catalog",JSON.stringify(next))}catch{}}else throw new Error("empty catalog")})
+   .then(data=>{if(cancelled)return;const next=normalizeModelCatalog(data);if(next.length){setCatalog(next);try{localStorage.setItem("prompt-habit:model-catalog",JSON.stringify(next))}catch{}}else throw new Error("empty catalog")})
    .catch(()=>{if(!cancelled)setError("Live catalog unavailable — showing cached models.")})
    .finally(()=>{if(!cancelled)setLoading(false)});
   return()=>{cancelled=true};
  },[]);
  useEffect(()=>{setSelected(Array.isArray(value)?value.map(x=>typeof x==="string"?x:x?.id).filter(Boolean):[])},[value]);
  const q=query.trim().toLowerCase();
- const results=catalog.filter(m=>(m.name+" "+m.company+" "+m.id).toLowerCase().includes(q)).slice(0,300);
+ const results=catalog.filter(m=>(m.name+" "+m.company+" "+m.id+" "+(m.family||"")).toLowerCase().includes(q)).slice(0,500);
  const toggle=id=>{
   setSelected(current=>{
    if(current.includes(id))return current.filter(x=>x!==id);
@@ -205,7 +211,8 @@ function AppShell(){
  const [adjusting,setAdjusting]=useState(false);
  const [listening,setListening]=useState(false);
  const [toast,setToast]=useState("");
- const [search,setSearch]=useState("");
+ const [historySearch,setHistorySearch]=useState("");
+ const [templateSearch,setTemplateSearch]=useState("");
  const [filter,setFilter]=useState("all");
  const editor=useRef(null),micRef=useRef(null),mirrorRef=useRef(null),toastTimer=useRef(null);
  const t=prompt.trim(), wordCount=t?t.split(/\s+/).length:0;
@@ -271,7 +278,7 @@ function AppShell(){
  const allTemplates=[...publishedTemplates,...templates];
  const templateCategories=[...new Set(allTemplates.map(x=>x.category))];
  const templateResults=allTemplates.filter(x=>{
-  const q=search.trim().toLowerCase();
+  const q=templateSearch.trim().toLowerCase();
   const matchesCategory=filter==="all"||x.category===filter;
   const haystack=[x.name,x.category,...x.tags,x.text].join(" ").toLowerCase();
   return matchesCategory&&(!q||haystack.includes(q));
@@ -279,7 +286,7 @@ function AppShell(){
  const groupedTemplates=templateCategories
   .map(category=>({category,items:templateResults.filter(x=>x.category===category)}))
   .filter(group=>group.items.length);
- const filteredHistory=history.filter(x=>(filter==="all"||x.pinned)&&x.text.toLowerCase().includes(search.toLowerCase()));
+ const filteredHistory=history.filter(x=>(filter==="all"||x.pinned)&&x.text.toLowerCase().includes(historySearch.toLowerCase()));
 
  const positionMic=()=>{
   const el=editor.current,mic=micRef.current,mirror=mirrorRef.current;
@@ -338,9 +345,9 @@ function AppShell(){
       <button className={"pri "+(adjusting?"busy":"")} onClick={adjust} disabled={!t||adjusting}><Icon name="spark" size={18}/>{adjusting?"Adjusting":"Improve"}</button>
     </div>
    </section>}
-   {screen==="history"&&<section className="screen on"><div className="scroll"><div className="search-wrap"><span aria-hidden="true">⌕</span><input type="search" className="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search saved prompts"/>{search&&<button type="button" className="search-clear" onClick={()=>setSearch("")} aria-label="Clear search">×</button>}</div><div className="chips"><button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button><button className={filter==="pin"?"chip active":"chip"} onClick={()=>setFilter("pin")}>Pinned</button></div>{filteredHistory.length?filteredHistory.map(x=><div className="item" key={x.id}><button className="item-body" onClick={()=>load(x.text)}><div className="item-title">{x.text}</div><div className="item-date">{x.pinned?"Pinned, ":""}{new Date(x.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div></button><button className="ic item-pin" onClick={()=>setHistory(h=>h.map(p=>p.id===x.id?{...p,pinned:!p.pinned}:p))}>✦</button></div>):<div className="empty"><b>{history.length?"No matches":"No saved prompts yet"}</b><span>{history.length?"Try a different search.":"Save a prompt from the Write screen."}</span></div>}</div></section>}
+   {screen==="history"&&<section className="screen on"><div className="scroll"><div className="search-wrap"><span aria-hidden="true">⌕</span><input type="search" className="search" value={historySearch} onChange={e=>setHistorySearch(e.target.value)} placeholder="Search saved prompts"/>{historySearch&&<button type="button" className="search-clear" onClick={()=>setHistorySearch("")} aria-label="Clear search">×</button>}</div><div className="chips"><button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button><button className={filter==="pin"?"chip active":"chip"} onClick={()=>setFilter("pin")}>Pinned</button></div>{filteredHistory.length?filteredHistory.map(x=><div className="item" key={x.id}><button className="item-body" onClick={()=>load(x.text)}><div className="item-title">{x.text}</div><div className="item-date">{x.pinned?"Pinned, ":""}{new Date(x.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"})}</div></button><button className="ic item-pin" onClick={()=>setHistory(h=>h.map(p=>p.id===x.id?{...p,pinned:!p.pinned}:p))}>✦</button></div>):<div className="empty"><b>{history.length?"No matches":"No saved prompts yet"}</b><span>{history.length?"Try a different search.":"Save a prompt from the Write screen."}</span></div>}</div></section>}
    {screen==="templates"&&<section className="screen on"><div className="scroll template-screen">
-    <div className="search-wrap template-search-wrap"><span className="template-search-icon" aria-hidden="true">⌕</span><input type="search" className="search template-search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by task: image, video, code, research..."/>{search&&<button type="button" className="search-clear template-search-clear" onClick={()=>setSearch("")} aria-label="Clear template search">×</button>}</div>
+    <div className="search-wrap template-search-wrap"><span className="template-search-icon" aria-hidden="true">⌕</span><input type="search" className="search template-search" value={templateSearch} onChange={e=>setTemplateSearch(e.target.value)} placeholder="Search by task: image, video, code, research..."/>{templateSearch&&<button type="button" className="search-clear template-search-clear" onClick={()=>setTemplateSearch("")} aria-label="Clear template search">×</button>}</div>
     <div className="template-filters" aria-label="Template categories">
       <button className={filter==="all"?"chip active":"chip"} onClick={()=>setFilter("all")}>All</button>
       {templateCategories.map(category=><button key={category} className={filter===category?"chip active":"chip"} onClick={()=>setFilter(category)}>{category}</button>)}
